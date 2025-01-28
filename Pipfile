@@ -8,6 +8,7 @@ numpy = "*"
 matplotlib = "*"
 librosa = "*"
 pandas = "*"
+tqdm = "*"
 
 [dev-packages]
 ipykernel = "*"
