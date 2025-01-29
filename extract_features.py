@@ -18,7 +18,11 @@ def min_max_normalize(arr):
 def extract_features(file_path, bpm):
     try:
         y, sr = librosa.load(file_path, sr=44100,
-                             duration=10, dtype=np.float64)
+                             duration=6, dtype=np.float64)
+
+        fade_out_samples = int(0.5 * sr)  # fade out by half a second
+        fade_out_envelope = np.linspace(1, 0, fade_out_samples)
+        y[-fade_out_samples:] *= fade_out_envelope
 
         mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)
         zcr = librosa.feature.zero_crossing_rate(y + 1e-6)[0]
@@ -47,16 +51,16 @@ def extract_features(file_path, bpm):
         }
 
         feature_vector = np.concatenate([
-            features['mfcc_median'], 
+            features['mfcc_median'],
             features['mfcc_skew'],
-            features['mfcc_var'], 
+            features['mfcc_var'],
             features['onset_strength_median'],
             features['onset_strength_var'],
-            features['rms_energy_median'], 
+            features['rms_energy_median'],
             features['rms_energy_var'],
-            features['spectral_contrast_median'], 
+            features['spectral_contrast_median'],
             features['spectral_contrast_var'],
-            features['zcr_median'], 
+            features['zcr_median'],
             features['zcr_var'],
             [bpm]
         ])
@@ -70,31 +74,42 @@ def extract_features(file_path, bpm):
 if __name__ == '__main__':
 
     print("done")
-    # csv_path = "data/wrld_smb_drm_8br_id_001_wav.csv"
-    # csv_path = 'data/hh_lfbb_lps_mid_001-009.csv'
-    # csv_path = "data/edm_tr9_drm_id_001.csv"
-    csv_path = "data/pop_rok_drm_id_001_wav.csv"
-    data = pd.read_csv(csv_path)
+    file_paths = [
+        ("data/wrld_smb_drm_8br_id_001_wav.csv",
+         "data/wrld_smb_drm_features_and_labels.npz"),
+        ('data/hh_lfbb_lps_mid_001-009.csv', 'data/hh_lfbb_lps_mid_001-009.npz'),
+        ("data/edm_tr9_drm_id_001.csv", "data/edm_tr9_drm_id_001.npz"),
+        ("data/pop_rok_drm_id_001_wav.csv", "data/pop_rok_drm_id_001_wav.csv")
+    ]
 
-    unique_label = [data['genre'].iloc[0], data['subgenre'].iloc[0]]
-    bpm_values = data['bpm'].values
+    for file in file_paths:
+        csv_path = file[0]
 
-    feature_list = []
+        # csv_path = "data/wrld_smb_drm_8br_id_001_wav.csv"
+        # csv_path = 'data/hh_lfbb_lps_mid_001-009.csv'
+        # csv_path = "data/edm_tr9_drm_id_001.csv"
+        # csv_path = "data/pop_rok_drm_id_001_wav.csv"
+        data = pd.read_csv(csv_path)
 
-    for i, row in tqdm(data.iterrows()):
-        file_path = row['file_path']
-        bpm = bpm_values[i]
+        # unique_label = [data['genre'].iloc[0], data['subgenre'].iloc[0]]
+        bpm_values = data['bpm'].values
 
-        features = extract_features(file_path, bpm)
-        if features is not None:
-            feature_list.append(features)
+        feature_list = []
 
-    X = np.array(feature_list)
-    # y = np.array([unique_label] * len(feature_list))
+        for i, row in tqdm(data.iterrows()):
+            file_path = row['file_path']
+            bpm = bpm_values[i]
 
-    # output_npz_path = "data/wrld_smb_drm_features_and_labels.npz"
-    # output_npz_path = "data/hh_lfbb_lps_mid_001-009.npz"
-    # output_npz_path = "data/edm_tr9_drm_id_001.npz"
-    output_npz_path = "data/pop_rok_drm_id_001_wav.npz"
-    np.savez(output_npz_path, features=X)
-    print(f"Features and labels saved to {output_npz_path}")
+            features = extract_features(file_path, bpm)
+            if features is not None:
+                feature_list.append(features)
+
+        X = np.array(feature_list)
+        # y = np.array([unique_label] * len(feature_list))
+        output_npz_path = file[1]
+        # output_npz_path = "data/wrld_smb_drm_features_and_labels.npz"
+        # output_npz_path = "data/hh_lfbb_lps_mid_001-009.npz"
+        # output_npz_path = "data/edm_tr9_drm_id_001.npz"
+        # output_npz_path = "data/pop_rok_drm_id_001_wav.npz"
+        np.savez(output_npz_path, features=X)
+        print(f"Features and labels saved to {output_npz_path}")

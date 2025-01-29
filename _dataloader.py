@@ -1,5 +1,6 @@
 import numpy as np
-from sklearn.preprocessing import LabelEncoder
+from extract_features import extract_features
+from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
 from sklearn.model_selection import train_test_split
@@ -11,6 +12,22 @@ def min_max_normalize(arr):
     if max_val == min_val:
         return np.zeros_like(arr)
     return (arr - min_val) / (max_val - min_val)
+
+
+MIN_BPM = 30
+MAX_BPM = 300
+SCALER = MinMaxScaler(feature_range=(0, 1))
+SCALER.fit(np.array([[MIN_BPM], [MAX_BPM]]))
+
+
+def scale_bpm(bpm):
+    bpm_scaled = SCALER.transform(bpm)
+    return bpm_scaled
+
+
+def inverse_scale_bpm(scaled_bpm):
+    bpm_original = SCALER.inverse_transform(np.array([[scaled_bpm]]))
+    return bpm_original[0, 0]
 
 
 def clean_and_split_data():
@@ -73,15 +90,36 @@ def clean_and_split_data():
         np.full(1100, encoded_labels[3])   # edm_tr_909
     ])
 
-    normalized_data = np.zeros_like(concatenated_dataset)
+    final_data = np.zeros_like(concatenated_dataset)
     for idx_range in feature_slices:
-        normalized_data[:, idx_range] = min_max_normalize(
+        final_data[:, idx_range] = scale_bpm(
             concatenated_dataset[:, idx_range])
 
     X_train, X_test, y_train, y_test = train_test_split(
-        normalized_data, expanded_labels, test_size=0.3, shuffle=True)
+        final_data, expanded_labels, test_size=0.3, shuffle=True)
 
     return X_train, X_test, y_train, y_test, label_encoder
+
+
+def get_feature_vector_for_file(file_path, bpm):
+    feature_slices = [
+        # slice(0, 13),   # [0:12] 'mfcc_median'
+        # slice(13, 26),  # [13:25]'mfcc_skew'
+        # slice(26, 39),  # [26:38]'mfcc_var'
+        # slice(39, 40),  # [39]  'onset_strength_median'
+        # slice(40, 41),  # [40] 'onset_strength_var'
+        # slice(41, 42),  # [41] 'rms_energy_median'
+        # slice(42, 43),  # [42]  'rms_energy_var'
+        # slice(43, 50),  # [43:49] 'spectral_contrast_median'
+        # slice(50, 57),  # [50:56]'spectral_contrast_var'
+        # slice(57, 58),  # [57]'zcr_median'
+        # slice(58, 59),  # [58]'zcr_var'
+        slice(59, 60),  # [59]  'bpm'
+    ]
+    feature_vector = extract_features(file_path, bpm)
+    feature_vector[59:60] = scale_bpm(np.array([[bpm]]))
+
+    return feature_vector
 
 
 def TSNE_plotter(final_data_set):

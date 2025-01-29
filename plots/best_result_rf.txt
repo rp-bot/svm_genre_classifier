@@ -1,0 +1,26 @@
+Accuracy: 0.75
+Precision (Macro): 0.76
+Recall (Macro): 0.75
+F1-score (Macro): 0.76
+
+Confusion Matrix:
+[[233   0   0  80]
+ [  0 296   0  50]
+ [ 13   0 293  16]
+ [145  17   7 170]]
+
+Classification Report:
+              precision    recall  f1-score   support
+
+           0       0.60      0.74      0.66       313
+           1       0.95      0.86      0.90       346
+           2       0.98      0.91      0.94       322
+           3       0.54      0.50      0.52       339
+
+    accuracy                           0.75      1320
+   macro avg       0.76      0.75      0.76      1320
+weighted avg       0.77      0.75      0.76      1320
+
+out of distribution test
+125bpm_tr8_drm_id_007_0086.wav classified
+['edm_tr_909']
