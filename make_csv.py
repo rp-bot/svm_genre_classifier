@@ -38,5 +38,5 @@ def create_wav_metadata_csv(folder_path, output_csv):
 #                         "data/wrld_smb_drm_8br_id_001_wav.csv")
 
 
-create_wav_metadata_csv("data/edm_tr9_drm_id_001",
-                        "data/edm_tr9_drm_id_001.csv")
+create_wav_metadata_csv("data/pop_rok_drm_id_001_wav",
+                        "data/pop_rok_drm_id_001_wav.csv")
