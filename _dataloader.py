@@ -94,6 +94,7 @@ def clean_and_split_data():
     for idx_range in feature_slices:
         final_data[:, idx_range] = scale_bpm(
             concatenated_dataset[:, idx_range])
+        # concatenated_dataset[:, idx_range] = 0
 
     X_train, X_test, y_train, y_test = train_test_split(
         final_data, expanded_labels, test_size=0.3, shuffle=True)
@@ -118,6 +119,7 @@ def get_feature_vector_for_file(file_path, bpm):
     ]
     feature_vector = extract_features(file_path, bpm)
     feature_vector[59:60] = scale_bpm(np.array([[bpm]]))
+    # feature_vector[59:60] = 0
 
     return feature_vector
 

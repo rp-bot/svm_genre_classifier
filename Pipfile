@@ -10,6 +10,7 @@ librosa = "*"
 pandas = "*"
 tqdm = "*"
 seaborn = "*"
+shap = "*"
 
 [dev-packages]
 ipykernel = "*"
