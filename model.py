@@ -151,39 +151,52 @@ def random_forest_classifier():
     rf_classifier = RandomForestClassifier(n_estimators=100, random_state=42)
     rf_classifier.fit(X_train, y_train)
 
-    y_hat = rf_classifier.predict(X_test)
-    accuracy = metrics.accuracy_score(y_test, y_hat)
-    precision = metrics.precision_score(
-        y_test, y_hat, average='macro')  # Macro for multi-class
-    recall = metrics.recall_score(
-        y_test, y_hat, average='macro')  # Macro for multi-class
-    # Macro for multi-class
-    f1 = metrics.f1_score(y_test, y_hat, average='macro')
-    conf_matrix = metrics.confusion_matrix(y_test, y_hat)
+    y_hat_train = rf_classifier.predict(X_train)
+    y_hat_test = rf_classifier.predict(X_test)
 
-    print(f"Accuracy: {accuracy:.2f}")
-    print(f"Precision (Macro): {precision:.2f}")
-    print(f"Recall (Macro): {recall:.2f}")
-    print(f"F1-score (Macro): {f1:.2f}")
+    # Compute Metrics
+    train_accuracy = metrics.accuracy_score(y_train, y_hat_train)
+    test_accuracy = metrics.accuracy_score(y_test, y_hat_test)
 
-    print("\nConfusion Matrix:")
-    print(conf_matrix)
+    train_precision = metrics.precision_score(
+        y_train, y_hat_train, average='macro')
+    test_precision = metrics.precision_score(
+        y_test, y_hat_test, average='macro')
 
-    print("\nClassification Report:")
-    print(metrics.classification_report(y_test, y_hat))
+    train_recall = metrics.recall_score(y_train, y_hat_train, average='macro')
+    test_recall = metrics.recall_score(y_test, y_hat_test, average='macro')
 
-    X_test_file = get_feature_vector_for_file(
-        "data/out_of_ditribution/95bpm_tr8_drm_id_001_0069.wav", 95)
+    train_f1 = metrics.f1_score(y_train, y_hat_train, average='macro')
+    test_f1 = metrics.f1_score(y_test, y_hat_test, average='macro')
 
-    y_test_file = rf_classifier.predict(np.array([X_test_file]))
+    # Print Classification Report
+    print("Classification Report:\n", metrics.classification_report(
+        y_test, y_hat_test, target_names=label_decoder.classes_))
 
-    print(label_decoder.inverse_transform(y_test_file))
+    # Plot Confusion Matrix
+    plot_confusion_matrix(y_test, y_hat_test, label_decoder.classes_,
+                          plot_name="RF_confusion_matrix_with_bpm", model_name="RF")
+
+    # Plot Accuracy, Precision, Recall, and F1-score
+    train_metrics = [train_accuracy, train_precision, train_recall, train_f1]
+    test_metrics = [test_accuracy, test_precision, test_recall, test_f1]
+    metric_names = ["Accuracy", "Precision", "Recall", "F1-score"]
+
+    plot_metrics(train_metrics, test_metrics, metric_names,
+                 plot_name="RF_metrics_with_bpm", model_name="RF")
+
+    # X_test_file = get_feature_vector_for_file(
+    #     "data/out_of_ditribution/95bpm_tr8_drm_id_001_0069.wav", 95)
+
+    # y_test_file = rf_classifier.predict(np.array([X_test_file]))
+
+    # print(label_decoder.inverse_transform(y_test_file))
 
 
 if __name__ == '__main__':
 
     # linear_SVM()
 
-    RBF_SVM()
+    # RBF_SVM()
 
-    # random_forest_classifier()
+    random_forest_classifier()
