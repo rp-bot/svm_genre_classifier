@@ -1,0 +1,11 @@
+Classification Report:
+                        precision    recall  f1-score   support
+
+           edm_tr_909       0.99      1.00      0.99       342
+hip_hop_lofi_boom_bap       1.00      1.00      1.00       314
+             pop_rock       1.00      1.00      1.00       335
+          world_samba       1.00      0.99      0.99       329
+
+             accuracy                           1.00      1320
+            macro avg       1.00      1.00      1.00      1320
+         weighted avg       1.00      1.00      1.00      1320

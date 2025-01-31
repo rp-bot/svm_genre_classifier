@@ -68,7 +68,7 @@ def clean_and_split_data():
         # slice(50, 57),  # [50:56]'spectral_contrast_var'
         # slice(57, 58),  # [57]'zcr_median'
         # slice(58, 59),  # [58]'zcr_var'
-        slice(59, 60),  # [59]  'bpm'
+        # slice(59, 60),  # [59]  'bpm'
     ]
 
     concatenated_dataset = np.concatenate(
@@ -90,14 +90,14 @@ def clean_and_split_data():
         np.full(1100, encoded_labels[3])   # edm_tr_909
     ])
 
-    final_data = np.zeros_like(concatenated_dataset)
-    for idx_range in feature_slices:
-        final_data[:, idx_range] = scale_bpm(
-            concatenated_dataset[:, idx_range])
-        # concatenated_dataset[:, idx_range] = 0
+    # final_data = np.zeros_like(concatenated_dataset)
+    # for idx_range in feature_slices:
+    #     # final_data[:, idx_range] = scale_bpm(
+    #     #     concatenated_dataset[:, idx_range])
+    #     concatenated_dataset[:, idx_range] = 0
 
     X_train, X_test, y_train, y_test = train_test_split(
-        final_data, expanded_labels, test_size=0.3, shuffle=True)
+        concatenated_dataset, expanded_labels, test_size=0.3, shuffle=True)
 
     return X_train, X_test, y_train, y_test, label_encoder
 
@@ -115,11 +115,14 @@ def get_feature_vector_for_file(file_path, bpm):
         # slice(50, 57),  # [50:56]'spectral_contrast_var'
         # slice(57, 58),  # [57]'zcr_median'
         # slice(58, 59),  # [58]'zcr_var'
-        slice(59, 60),  # [59]  'bpm'
+        # slice(59, 60),  # [59]  'bpm'
     ]
     feature_vector = extract_features(file_path, bpm)
-    feature_vector[59:60] = scale_bpm(np.array([[bpm]]))
-    # feature_vector[59:60] = 0
+    # feature_vector[59:60] = scale_bpm(np.array([[bpm]]))
+    # for idx_range in feature_slices:
+    #     # final_data[:, idx_range] = scale_bpm(
+    #     #     concatenated_dataset[:, idx_range])
+    #     feature_vector[idx_range] = 0
 
     return feature_vector
 

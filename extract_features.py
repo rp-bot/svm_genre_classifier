@@ -5,6 +5,43 @@ from scipy.stats import skew
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from pprint import pprint
+from multiprocessing import Pool, cpu_count
+
+
+file_paths = [
+    ("data/wrld_smb_drm_8br_id_001_wav.csv",
+     "data/wrld_smb_drm_features_and_labels.npz"),
+    ('data/hh_lfbb_lps_mid_001-009.csv', 'data/hh_lfbb_lps_mid_001-009.npz'),
+    ("data/edm_tr9_drm_id_001.csv", "data/edm_tr9_drm_id_001.npz"),
+    ("data/pop_rok_drm_id_001_wav.csv", "data/pop_rok_drm_id_001_wav.npz")
+]
+
+
+def process_file(file):
+    csv_path, output_npz_path = file
+
+    # Read CSV
+    data = pd.read_csv(csv_path)
+    bpm_values = data['bpm'].values
+
+    feature_list = []
+
+    # Process each row
+    for i, row in tqdm(data.iterrows(), total=len(data), desc=f"Processing {csv_path}"):
+        file_path = row['file_path']
+        bpm = bpm_values[i]
+
+        # Extract features (Assumes extract_features is defined)
+        features = extract_features(file_path, bpm)
+        if features is not None:
+            feature_list.append(features)
+
+    # Convert to NumPy array
+    X = np.array(feature_list)
+
+    # Save features
+    np.savez(output_npz_path, features=X)
+    print(f"Features and labels saved to {output_npz_path}")
 
 
 def min_max_normalize(arr):
@@ -52,17 +89,18 @@ def extract_features(file_path, bpm):
 
         feature_vector = np.concatenate([
             features['mfcc_median'],
+            # TODO I think this is what is causing the problem, its adding bias
             features['mfcc_skew'],
             features['mfcc_var'],
             features['onset_strength_median'],
             features['onset_strength_var'],
-            features['rms_energy_median'],
-            features['rms_energy_var'],
-            features['spectral_contrast_median'],
-            features['spectral_contrast_var'],
+            # features['rms_energy_median'],
+            # features['rms_energy_var'],
+            # features['spectral_contrast_median'],
+            # features['spectral_contrast_var'],
             features['zcr_median'],
             features['zcr_var'],
-            [bpm]
+            # [bpm]
         ])
 
         return feature_vector
@@ -73,43 +111,7 @@ def extract_features(file_path, bpm):
 
 if __name__ == '__main__':
 
-    print("done")
-    file_paths = [
-        ("data/wrld_smb_drm_8br_id_001_wav.csv",
-         "data/wrld_smb_drm_features_and_labels.npz"),
-        ('data/hh_lfbb_lps_mid_001-009.csv', 'data/hh_lfbb_lps_mid_001-009.npz'),
-        ("data/edm_tr9_drm_id_001.csv", "data/edm_tr9_drm_id_001.npz"),
-        ("data/pop_rok_drm_id_001_wav.csv", "data/pop_rok_drm_id_001_wav.csv")
-    ]
-
-    for file in file_paths:
-        csv_path = file[0]
-
-        # csv_path = "data/wrld_smb_drm_8br_id_001_wav.csv"
-        # csv_path = 'data/hh_lfbb_lps_mid_001-009.csv'
-        # csv_path = "data/edm_tr9_drm_id_001.csv"
-        # csv_path = "data/pop_rok_drm_id_001_wav.csv"
-        data = pd.read_csv(csv_path)
-
-        # unique_label = [data['genre'].iloc[0], data['subgenre'].iloc[0]]
-        bpm_values = data['bpm'].values
-
-        feature_list = []
-
-        for i, row in tqdm(data.iterrows()):
-            file_path = row['file_path']
-            bpm = bpm_values[i]
-
-            features = extract_features(file_path, bpm)
-            if features is not None:
-                feature_list.append(features)
-
-        X = np.array(feature_list)
-        # y = np.array([unique_label] * len(feature_list))
-        output_npz_path = file[1]
-        # output_npz_path = "data/wrld_smb_drm_features_and_labels.npz"
-        # output_npz_path = "data/hh_lfbb_lps_mid_001-009.npz"
-        # output_npz_path = "data/edm_tr9_drm_id_001.npz"
-        # output_npz_path = "data/pop_rok_drm_id_001_wav.npz"
-        np.savez(output_npz_path, features=X)
-        print(f"Features and labels saved to {output_npz_path}")
+    # Use up to the number of available CPUs
+    num_workers = min(len(file_paths), cpu_count())
+    with Pool(num_workers) as pool:
+        pool.map(process_file, file_paths)

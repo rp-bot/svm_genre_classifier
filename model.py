@@ -127,7 +127,7 @@ def RBF_SVM():
 
     # Plot Confusion Matrix
     plot_confusion_matrix(y_test, y_hat_test, label_decoder.classes_,
-                          plot_name="RBF_svm_confusion_matrix_with_bpm", model_name="RBF SVM")
+                          plot_name="RBF_svm_confusion_matrix", model_name="RBF SVM")
 
     # Plot Accuracy, Precision, Recall, and F1-score
     train_metrics = [train_accuracy, train_precision, train_recall, train_f1]
@@ -135,7 +135,7 @@ def RBF_SVM():
     metric_names = ["Accuracy", "Precision", "Recall", "F1-score"]
 
     plot_metrics(train_metrics, test_metrics, metric_names,
-                 plot_name="RBF_svm_metrics_with_bpm", model_name="RBF SVM")
+                 plot_name="RBF_svm_metrics", model_name="RBF SVM")
 
     # X_test_file = get_feature_vector_for_file(
     #     "data/out_of_ditribution/95bpm_tr8_drm_id_001_0069.wav", 95)
@@ -175,7 +175,7 @@ def random_forest_classifier():
 
     # Plot Confusion Matrix
     plot_confusion_matrix(y_test, y_hat_test, label_decoder.classes_,
-                          plot_name="RF_confusion_matrix_with_bpm", model_name="RF")
+                          plot_name="RF_confusion_matrix", model_name="RF")
 
     # Plot Accuracy, Precision, Recall, and F1-score
     train_metrics = [train_accuracy, train_precision, train_recall, train_f1]
@@ -183,14 +183,18 @@ def random_forest_classifier():
     metric_names = ["Accuracy", "Precision", "Recall", "F1-score"]
 
     plot_metrics(train_metrics, test_metrics, metric_names,
-                 plot_name="RF_metrics_with_bpm", model_name="RF")
+                 plot_name="RF_metrics", model_name="RF")
 
-    # X_test_file = get_feature_vector_for_file(
-    #     "data/out_of_ditribution/95bpm_tr8_drm_id_001_0069.wav", 95)
+    X_test_file = get_feature_vector_for_file(
+        "data/out_of_ditribution/120bpm_hse_drm_id_001_0018.wav", 0)
 
-    # y_test_file = rf_classifier.predict(np.array([X_test_file]))
+    y_test_file_proba = rf_classifier.predict_proba(np.array([X_test_file]))
 
-    # print(label_decoder.inverse_transform(y_test_file))
+    class_names = label_decoder.classes_
+
+    for class_name, prob in zip(class_names, y_test_file_proba[0]):
+
+        print(f"{class_name}: {prob:.4f}")
 
 
 if __name__ == '__main__':

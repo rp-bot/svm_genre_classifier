@@ -9,3 +9,17 @@ hip_hop_lofi_boom_bap       0.88      0.91      0.89       318
              accuracy                           0.71      1320
             macro avg       0.71      0.72      0.71      1320
          weighted avg       0.71      0.71      0.70      1320
+
+
+NO bpm
+Classification Report:
+                       precision    recall  f1-score   support
+
+           edm_tr_909       0.96      0.99      0.98       340
+hip_hop_lofi_boom_bap       1.00      1.00      1.00       323
+             pop_rock       1.00      0.98      0.99       325
+          world_samba       0.98      0.97      0.97       332
+
+             accuracy                           0.98      1320
+            macro avg       0.98      0.98      0.98      1320
+         weighted avg       0.98      0.98      0.98      1320
