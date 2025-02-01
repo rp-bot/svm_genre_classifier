@@ -9,12 +9,12 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
-def plot_metrics(train_metrics, test_metrics, metric_names, model_name, plot_name):
+def plot_metrics(test_metrics, metric_names, model_name, plot_name):
     x = np.arange(len(metric_names))
     width = 0.35
 
     fig, ax = plt.subplots(figsize=(8, 6))
-    bars1 = ax.bar(x - width/2, train_metrics, width, label='Train')
+
     bars2 = ax.bar(x + width/2, test_metrics, width, label='Test')
 
     ax.set_xlabel('Metric')
@@ -24,7 +24,7 @@ def plot_metrics(train_metrics, test_metrics, metric_names, model_name, plot_nam
     ax.set_xticklabels(metric_names)
     ax.legend()
 
-    for bar in bars1 + bars2:
+    for bar in bars2:
         height = bar.get_height()
         ax.annotate(f'{height:.2f}',
                     xy=(bar.get_x() + bar.get_width() / 2, height),
@@ -55,18 +55,13 @@ def linear_SVM():
     y_hat_train = linear_classifier.predict(X_train)
     y_hat_test = linear_classifier.predict(X_test)
 
-    train_accuracy = metrics.accuracy_score(y_train, y_hat_train)
     test_accuracy = metrics.accuracy_score(y_test, y_hat_test)
 
-    train_precision = metrics.precision_score(
-        y_train, y_hat_train, average='macro')
     test_precision = metrics.precision_score(
         y_test, y_hat_test, average='macro')
 
-    train_recall = metrics.recall_score(y_train, y_hat_train, average='macro')
     test_recall = metrics.recall_score(y_test, y_hat_test, average='macro')
 
-    train_f1 = metrics.f1_score(y_train, y_hat_train, average='macro')
     test_f1 = metrics.f1_score(y_test, y_hat_test, average='macro')
 
     print("Classification Report:")
@@ -76,11 +71,10 @@ def linear_SVM():
     plot_confusion_matrix(y_test, y_hat_test, label_decoder.classes_,
                           plot_name="linear_svm_confusion_matrix", model_name="Linear SVM")
 
-    train_metrics = [train_accuracy, train_precision, train_recall, train_f1]
     test_metrics = [test_accuracy, test_precision, test_recall, test_f1]
     metric_names = ["Accuracy", "Precision", "Recall", "F1-score"]
 
-    plot_metrics(train_metrics, test_metrics, metric_names,
+    plot_metrics(test_metrics, metric_names,
                  plot_name="linear_svm_metrics", model_name="Linear SVM")
 
     # X_test_file = get_feature_vector_for_file(
@@ -104,21 +98,15 @@ def RBF_SVM():
     #     svm_rbf, param_grid, cv=5, scoring='accuracy', verbose=1, n_jobs=-1)
     svm_rbf.fit(X_train, y_train)
 
-    y_hat_train = svm_rbf.predict(X_train)
     y_hat_test = svm_rbf.predict(X_test)
 
-    train_accuracy = metrics.accuracy_score(y_train, y_hat_train)
     test_accuracy = metrics.accuracy_score(y_test, y_hat_test)
 
-    train_precision = metrics.precision_score(
-        y_train, y_hat_train, average='macro')
     test_precision = metrics.precision_score(
         y_test, y_hat_test, average='macro')
 
-    train_recall = metrics.recall_score(y_train, y_hat_train, average='macro')
     test_recall = metrics.recall_score(y_test, y_hat_test, average='macro')
 
-    train_f1 = metrics.f1_score(y_train, y_hat_train, average='macro')
     test_f1 = metrics.f1_score(y_test, y_hat_test, average='macro')
 
     # Print Classification Report
@@ -130,11 +118,11 @@ def RBF_SVM():
                           plot_name="RBF_svm_confusion_matrix", model_name="RBF SVM")
 
     # Plot Accuracy, Precision, Recall, and F1-score
-    train_metrics = [train_accuracy, train_precision, train_recall, train_f1]
+
     test_metrics = [test_accuracy, test_precision, test_recall, test_f1]
     metric_names = ["Accuracy", "Precision", "Recall", "F1-score"]
 
-    plot_metrics(train_metrics, test_metrics, metric_names,
+    plot_metrics(test_metrics, metric_names,
                  plot_name="RBF_svm_metrics", model_name="RBF SVM")
 
     # X_test_file = get_feature_vector_for_file(
@@ -151,22 +139,20 @@ def random_forest_classifier():
     rf_classifier = RandomForestClassifier(n_estimators=100, random_state=42)
     rf_classifier.fit(X_train, y_train)
 
-    y_hat_train = rf_classifier.predict(X_train)
+    # y_hat_train = rf_classifier.predict(X_train)
     y_hat_test = rf_classifier.predict(X_test)
 
     # Compute Metrics
-    train_accuracy = metrics.accuracy_score(y_train, y_hat_train)
+    # train_accuracy = metrics.accuracy_score(y_train, y_hat_train)
     test_accuracy = metrics.accuracy_score(y_test, y_hat_test)
 
-    train_precision = metrics.precision_score(
-        y_train, y_hat_train, average='macro')
     test_precision = metrics.precision_score(
         y_test, y_hat_test, average='macro')
 
-    train_recall = metrics.recall_score(y_train, y_hat_train, average='macro')
+    # train_recall = metrics.recall_score(y_train, y_hat_train, average='macro')
     test_recall = metrics.recall_score(y_test, y_hat_test, average='macro')
 
-    train_f1 = metrics.f1_score(y_train, y_hat_train, average='macro')
+    # train_f1 = metrics.f1_score(y_train, y_hat_train, average='macro')
     test_f1 = metrics.f1_score(y_test, y_hat_test, average='macro')
 
     # Print Classification Report
@@ -177,16 +163,14 @@ def random_forest_classifier():
     plot_confusion_matrix(y_test, y_hat_test, label_decoder.classes_,
                           plot_name="RF_confusion_matrix", model_name="RF")
 
-    # Plot Accuracy, Precision, Recall, and F1-score
-    train_metrics = [train_accuracy, train_precision, train_recall, train_f1]
     test_metrics = [test_accuracy, test_precision, test_recall, test_f1]
     metric_names = ["Accuracy", "Precision", "Recall", "F1-score"]
 
-    plot_metrics(train_metrics, test_metrics, metric_names,
+    plot_metrics(test_metrics, metric_names,
                  plot_name="RF_metrics", model_name="RF")
 
     X_test_file = get_feature_vector_for_file(
-        "data/out_of_ditribution/120bpm_hse_drm_id_001_0018.wav", 0)
+        "data/out_of_ditribution/recording-1-30-2025,-7-22-17-PM.wav", 0)
 
     y_test_file_proba = rf_classifier.predict_proba(np.array([X_test_file]))
 
@@ -201,6 +185,6 @@ if __name__ == '__main__':
 
     # linear_SVM()
 
-    # RBF_SVM()
+    RBF_SVM()
 
-    random_forest_classifier()
+    # random_forest_classifier()

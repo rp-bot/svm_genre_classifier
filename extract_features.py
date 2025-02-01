@@ -75,31 +75,35 @@ def extract_features(file_path, bpm):
 
         features = {
             'mfcc_median': np.median(mfcc_normalized, axis=1),
+            'mfcc_mean': np.mean(mfcc_normalized, axis=1),
             'mfcc_var': np.var(mfcc_normalized, axis=1),
             'mfcc_skew': skew(mfcc_normalized, axis=1),
             'zcr_median': np.array([np.median(zcr_normalized)]),
+            'zcr_mean': np.array([np.mean(zcr_normalized)]),
             'zcr_var': np.array([np.var(zcr_normalized)]),
             'spectral_contrast_median': np.median(spectral_contrast_normalized, axis=1),
             'spectral_contrast_var': np.var(spectral_contrast_normalized, axis=1),
             'onset_strength_median': np.array([np.median(onset_strength_normalized)]),
+            'onset_strength_mean': np.array([np.mean(onset_strength_normalized)]),
             'onset_strength_var': np.array([np.var(onset_strength_normalized)]),
             'rms_energy_median': np.array([np.median(rms_energy_normalized)]),
             'rms_energy_var': np.array([np.var(rms_energy_normalized)]),
         }
 
         feature_vector = np.concatenate([
-            features['mfcc_median'],
+            features['mfcc_mean'],
+            # features['mfcc_median'],
             # TODO I think this is what is causing the problem, its adding bias
-            features['mfcc_skew'],
-            features['mfcc_var'],
-            features['onset_strength_median'],
-            features['onset_strength_var'],
+            # features['mfcc_skew'],
+            # features['mfcc_var'],
+            features['onset_strength_mean'],
+            # features['onset_strength_var'],
             # features['rms_energy_median'],
             # features['rms_energy_var'],
             # features['spectral_contrast_median'],
             # features['spectral_contrast_var'],
-            features['zcr_median'],
-            features['zcr_var'],
+            features['zcr_mean'],
+            # features['zcr_var'],
             # [bpm]
         ])
 
