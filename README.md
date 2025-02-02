@@ -1,12 +1,15 @@
-# SVM Genre Classifier
+# SVM and Random Forest Genre Classifier of Drum Loops
 
-This project uses Support Vector Machines (SVM) to classify drum sounds into different genres.
+The objective of this project is to take survey Machine Learning Models for the purpose of genre classifications.
+The questions addressed in this project are:
+1. What are Support Vector Machines (SVM)? What are the types of SVM?
+2. What are the features that we can extract that constitutes drums?
+3. How do we perform dimensionality reduction?
+4. What is Random Forest?
 
-## Project Structure
+# Methodology
 
-- `data/`: Contains the dataset of drum sounds.
-- `notebooks/`: Jupyter notebooks for data exploration and model training.
-- `src/`: Source code for the SVM classifier.
-- `models/`: Saved models and checkpoints.
-- `README.md`: Project documentation.
+
+Achieved 83% Overall Accuracy
+
 
