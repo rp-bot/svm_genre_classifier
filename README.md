@@ -15,8 +15,11 @@ A custom dataset was created using the [Waiveops](https://www.patchbanks.com/wai
 ## Model Setup
 
 ## Results
-| MOdel    | Savings |
-| -------- | ------- |
+| Model    | Accuracy | Precision | Recall| F1-Score| 
+| -------- | ------- | --------| -----|------|
+|Linear SVM | 0.83| 0.84 | 0.83 | 0.83 |
+|Radial Basis Function SVM| 0.98 | 0.98 | 0.98|0.98|
+|Random Forest| 0.97 | 0.97 | 0.97|0.97|
 
 
 
