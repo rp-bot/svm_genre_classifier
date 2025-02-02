@@ -11,9 +11,12 @@ The questions addressed in this project are:
 ## Dataset
 A custom dataset was created using the [Waiveops](https://www.patchbanks.com/waivops/) dataset created by the people at Patchbanks.
 
+
 ## Model Setup
 
 ## Results
-Achieved 83% Overall Accuracy
+| MOdel    | Savings |
+| -------- | ------- |
+
 
 
