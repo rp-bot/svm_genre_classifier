@@ -8,8 +8,12 @@ The questions addressed in this project are:
 4. What is Random Forest?
 
 # Methodology
+## Dataset
+A custom dataset was created using the [Waiveops](https://www.patchbanks.com/waivops/) dataset created by the people at Patchbanks.
 
+# Model Setup
 
+## Results
 Achieved 83% Overall Accuracy
 
 
