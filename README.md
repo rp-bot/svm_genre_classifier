@@ -1,11 +1,6 @@
 # SVM and Random Forest Genre Classifier of Drum Loops
 
-The objective of this project is to take survey Machine Learning Models for the purpose of genre classifications.
-The questions addressed in this project are:
-1. What are Support Vector Machines (SVM)? What are the types of SVM?
-2. What are the features that we can extract that constitutes drums?
-3. How do we perform dimensionality reduction?
-4. What is Random Forest?
+The objective of this project is to survey Machine Learning algorithms for the purpose of genre classifications of drums.
 
 # Methodology
 ## Dataset
@@ -24,12 +19,30 @@ Feature selection is the most crucial part.
 The features were first normalized using a simple min-max normalization equation. 
 To construct the feature vector, the mean over time produced a 1 x 15 vector. 
 
+## Model Setup
+
+> add information about the models...
+
 ## Results
 | Model    | Accuracy | Precision | Recall| F1-Score| 
 | -------- | ------- | --------| -----|------|
 |Linear SVM | 0.83| 0.84 | 0.83 | 0.83 |
 |Radial Basis Function SVM| 0.98 | 0.98 | 0.98|0.98|
 |Random Forest| 0.97 | 0.97 | 0.97|0.97|
+
+# Discussion
+Initially a total of 13 features were selected. creating a 1x60 vector. Here is the correlation matrix.
+![image](plots/corr_matrix_1.png)
+This caused underfitting.
+![image](plots/linear_svm_metrics_with_BPM.png)
+---
+Another cause of underfitting/overfitting was the introduction of bias. I was choosing median and skew in order to represent the MFCC feature to make up for the loss of temporal data. But this was an unecessary bias. Limiting the model to be able to generalize. 
+Another feature that was causing underfitting was BPM. Eventhough it is obvious to us that BPM is heavily tied to drums. It is a secondary feature that can be inferred using ZCR. 
+Here we have the confusion matrix of the linear SVM with BPM included in the feature vector.
+![image](plots/linear_svm_confusion_matrix_with_BPM.png)
+
+Here I have removed the BPM.
+![image](plots/linear_svm_confusion_matrix.png)
 
 
 
