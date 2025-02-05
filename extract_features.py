@@ -2,6 +2,7 @@ import pandas as pd
 import librosa
 import numpy as np
 from scipy.stats import skew
+import scipy
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from pprint import pprint
@@ -9,11 +10,13 @@ from multiprocessing import Pool, cpu_count
 
 
 file_paths = [
-    ("data/wrld_smb_drm_8br_id_001_wav.csv",
-     "data/wrld_smb_drm_features_and_labels.npz"),
-    ('data/hh_lfbb_lps_mid_001-009.csv', 'data/hh_lfbb_lps_mid_001-009.npz'),
+    (
+        "data/wrld_smb_drm_8br_id_001_wav.csv",
+        "data/wrld_smb_drm_features_and_labels.npz",
+    ),
+    ("data/hh_lfbb_lps_mid_001-009.csv", "data/hh_lfbb_lps_mid_001-009.npz"),
     ("data/edm_tr9_drm_id_001.csv", "data/edm_tr9_drm_id_001.npz"),
-    ("data/pop_rok_drm_id_001_wav.csv", "data/pop_rok_drm_id_001_wav.npz")
+    ("data/pop_rok_drm_id_001_wav.csv", "data/pop_rok_drm_id_001_wav.npz"),
 ]
 
 
@@ -22,13 +25,13 @@ def process_file(file):
 
     # Read CSV
     data = pd.read_csv(csv_path)
-    bpm_values = data['bpm'].values
+    bpm_values = data["bpm"].values
 
     feature_list = []
 
     # Process each row
     for i, row in tqdm(data.iterrows(), total=len(data), desc=f"Processing {csv_path}"):
-        file_path = row['file_path']
+        file_path = row["file_path"]
         bpm = bpm_values[i]
 
         # Extract features (Assumes extract_features is defined)
@@ -54,8 +57,7 @@ def min_max_normalize(arr):
 
 def extract_features(file_path, bpm):
     try:
-        y, sr = librosa.load(file_path, sr=44100,
-                             duration=6, dtype=np.float64)
+        y, sr = librosa.load(file_path, sr=44100, duration=6, dtype=np.float64)
 
         fade_out_samples = int(0.5 * sr)  # fade out by half a second
         fade_out_envelope = np.linspace(1, 0, fade_out_samples)
@@ -64,56 +66,54 @@ def extract_features(file_path, bpm):
         mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)
         zcr = librosa.feature.zero_crossing_rate(y + 1e-6)[0]
         spectral_contrast = librosa.feature.spectral_contrast(y=y, sr=sr)
+        spectral_centroid = librosa.feature.spectral_centroid(y=y, sr=sr)
         onset_strength = librosa.onset.onset_strength(y=y, sr=sr)
         rms_energy = librosa.feature.rms(y=y)[0]
 
-        mfcc_normalized = min_max_normalize(mfcc)
-        zcr_normalized = min_max_normalize(zcr)
-        spectral_contrast_normalized = min_max_normalize(spectral_contrast)
-        onset_strength_normalized = min_max_normalize(onset_strength)
-        rms_energy_normalized = min_max_normalize(rms_energy)
-
         features = {
-            'mfcc_median': np.median(mfcc_normalized, axis=1),
-            'mfcc_mean': np.mean(mfcc_normalized, axis=1),
-            'mfcc_var': np.var(mfcc_normalized, axis=1),
-            'mfcc_skew': skew(mfcc_normalized, axis=1),
-            'zcr_median': np.array([np.median(zcr_normalized)]),
-            'zcr_mean': np.array([np.mean(zcr_normalized)]),
-            'zcr_var': np.array([np.var(zcr_normalized)]),
-            'spectral_contrast_median': np.median(spectral_contrast_normalized, axis=1),
-            'spectral_contrast_var': np.var(spectral_contrast_normalized, axis=1),
-            'onset_strength_median': np.array([np.median(onset_strength_normalized)]),
-            'onset_strength_mean': np.array([np.mean(onset_strength_normalized)]),
-            'onset_strength_var': np.array([np.var(onset_strength_normalized)]),
-            'rms_energy_median': np.array([np.median(rms_energy_normalized)]),
-            'rms_energy_var': np.array([np.var(rms_energy_normalized)]),
+            "mfcc_mean": np.mean(mfcc, axis=1),
+            "mfcc_std": np.std(mfcc, axis=1),
+            "zcr_mean": np.array([np.mean(zcr)]),
+            "zcr_std": np.array([np.std(zcr)]),
+            "spectral_contrast_mean": np.mean(spectral_contrast, axis=1),
+            "spectral_contrast_std": np.std(spectral_contrast, axis=1),
+            "onset_strength_mean": np.array([np.mean(onset_strength)]),
+            "onset_strength_std": np.array([np.std(onset_strength)]),
+            "rms_energy_mean": np.array([np.mean(rms_energy)]),
+            "rms_energy_std": np.array([np.std(rms_energy)]),
+            "spectral_centroid_mean": np.mean(spectral_centroid, axis=1),
+            "spectral_centroid_std": np.std(spectral_centroid, axis=1),
         }
 
-        feature_vector = np.concatenate([
-            features['mfcc_mean'],
-            # features['mfcc_median'],
-            # TODO I think this is what is causing the problem, its adding bias
-            # features['mfcc_skew'],
-            # features['mfcc_var'],
-            features['onset_strength_mean'],
-            # features['onset_strength_var'],
-            # features['rms_energy_median'],
-            # features['rms_energy_var'],
-            # features['spectral_contrast_median'],
-            # features['spectral_contrast_var'],
-            features['zcr_mean'],
-            # features['zcr_var'],
-            # [bpm]
-        ])
+        
+        feature_vector = np.concatenate(
+            [
+                features["mfcc_mean"],
+                features["mfcc_std"],
+                features["onset_strength_mean"],
+                features["onset_strength_std"],
+                features["rms_energy_mean"],
+                features["rms_energy_std"],
+                features["spectral_contrast_mean"],
+                features["spectral_contrast_std"],
+                features["zcr_mean"],
+                features["zcr_std"],
+                features["spectral_centroid_mean"],
+                features["spectral_centroid_std"],
+                [bpm],
+            ]
+        )
 
         return feature_vector
+
     except Exception as e:
         print(f"Error processing {file_path}: {e}")
         return None
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
+    # for file_path in file_paths:
+    #     process_file(file_path)
 
     # Use up to the number of available CPUs
     num_workers = min(len(file_paths), cpu_count())

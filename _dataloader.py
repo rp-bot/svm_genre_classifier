@@ -31,7 +31,7 @@ def inverse_scale_bpm(scaled_bpm):
 
 
 def clean_and_split_data():
-    sm_features_labels = np.load('data/wrld_smb_drm_features_and_labels.npz')
+    sm_features_labels = np.load("data/wrld_smb_drm_features_and_labels.npz")
 
     hh_features_labels = np.load("data/hh_lfbb_lps_mid_001-009.npz")
 
@@ -39,13 +39,13 @@ def clean_and_split_data():
 
     pop_feature_labels = np.load("data/pop_rok_drm_id_001_wav.npz")
 
-    sm_data = sm_features_labels['features']
+    sm_data = sm_features_labels["features"]
 
-    hh_data = hh_features_labels['features']
+    hh_data = hh_features_labels["features"]
 
-    tr9_data = tr9_feature_labels['features']
+    tr9_data = tr9_feature_labels["features"]
 
-    pop_data = pop_feature_labels['features']
+    pop_data = pop_feature_labels["features"]
 
     indices_hh = np.linspace(0, hh_data.shape[0] - 1, 1100, dtype=int)
     hh_data_len_reduced = hh_data[indices_hh]
@@ -72,10 +72,7 @@ def clean_and_split_data():
     ]
 
     concatenated_dataset = np.concatenate(
-        [sm_data,
-         hh_data_len_reduced,
-         tr9_data_len_reduced,
-         pop_data_len_reduced]
+        [sm_data, hh_data_len_reduced, tr9_data_len_reduced, pop_data_len_reduced]
     )
 
     labels = ["world_samba", "hip_hop_lofi_boom_bap", "pop_rock", "edm_tr_909"]
@@ -83,21 +80,22 @@ def clean_and_split_data():
     label_encoder = LabelEncoder()
     encoded_labels = label_encoder.fit_transform(labels)
 
-    expanded_labels = np.concatenate([
-        np.full(1100, encoded_labels[0]),  # world_samba
-        np.full(1100, encoded_labels[1]),  # hip_hop_lofi_boom_bap
-        np.full(1100, encoded_labels[2]),  # pop_rock
-        np.full(1100, encoded_labels[3])   # edm_tr_909
-    ])
-
-    # final_data = np.zeros_like(concatenated_dataset)
-    # for idx_range in feature_slices:
-    #     # final_data[:, idx_range] = scale_bpm(
-    #     #     concatenated_dataset[:, idx_range])
-    #     concatenated_dataset[:, idx_range] = 0
+    expanded_labels = np.concatenate(
+        [
+            np.full(1100, encoded_labels[0]),  # world_samba
+            np.full(1100, encoded_labels[1]),  # hip_hop_lofi_boom_bap
+            np.full(1100, encoded_labels[2]),  # pop_rock
+            np.full(1100, encoded_labels[3]),  # edm_tr_909
+        ]
+    )
 
     X_train, X_test, y_train, y_test = train_test_split(
-        concatenated_dataset, expanded_labels, test_size=0.3, shuffle=True)
+        concatenated_dataset,
+        expanded_labels,
+        test_size=0.3,
+        stratify=expanded_labels,
+        shuffle=True,
+    )
 
     return X_train, X_test, y_train, y_test, label_encoder
 
@@ -128,21 +126,39 @@ def get_feature_vector_for_file(file_path, bpm):
 
 
 def TSNE_plotter(final_data_set):
-    tsne = TSNE(n_components=2, random_state=42,
-                perplexity=30, learning_rate=200)
+    tsne = TSNE(n_components=2, random_state=42, perplexity=30, learning_rate=200)
     tsne_results = tsne.fit_transform(final_data_set[:, 0:59])
 
-    labels = np.array([0] * 1100 + [1] *
-                      1100 + [2] * 1100 + [3]*1100)
+    labels = np.array([0] * 1100 + [1] * 1100 + [2] * 1100 + [3] * 1100)
     plt.figure(figsize=(10, 7))
-    plt.scatter(tsne_results[labels == 0, 0], tsne_results[labels ==
-                                                           0, 1], alpha=0.7, label='World Music - Brazilian Samba', color='blue')
-    plt.scatter(tsne_results[labels == 1, 0], tsne_results[labels ==
-                                                           1, 1], alpha=0.7, label='lofi hip-hop', color='red')
-    plt.scatter(tsne_results[labels == 2, 0], tsne_results[labels ==
-                                                           2, 1], alpha=0.7, label='EDM - TR909', color='green')
-    plt.scatter(tsne_results[labels == 3, 0], tsne_results[labels ==
-                                                           3, 1], alpha=0.7, label='Pop - Rock', color='orange')
+    plt.scatter(
+        tsne_results[labels == 0, 0],
+        tsne_results[labels == 0, 1],
+        alpha=0.7,
+        label="World Music - Brazilian Samba",
+        color="blue",
+    )
+    plt.scatter(
+        tsne_results[labels == 1, 0],
+        tsne_results[labels == 1, 1],
+        alpha=0.7,
+        label="lofi hip-hop",
+        color="red",
+    )
+    plt.scatter(
+        tsne_results[labels == 2, 0],
+        tsne_results[labels == 2, 1],
+        alpha=0.7,
+        label="EDM - TR909",
+        color="green",
+    )
+    plt.scatter(
+        tsne_results[labels == 3, 0],
+        tsne_results[labels == 3, 1],
+        alpha=0.7,
+        label="Pop - Rock",
+        color="orange",
+    )
     plt.title("t-SNE Visualization of Combined Feature Sets")
     plt.xlabel("t-SNE Component 1")
     plt.ylabel("t-SNE Component 2")
@@ -151,5 +167,5 @@ def TSNE_plotter(final_data_set):
     plt.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     print("hello")
