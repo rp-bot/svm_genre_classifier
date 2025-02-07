@@ -1,5 +1,5 @@
 from sklearn import svm
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import cross_val_score, StratifiedKFold
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import MinMaxScaler
 from sklearn import metrics
@@ -99,36 +99,43 @@ def plot_feature_vector_distribution(X_train_scaled, y_train):
 
 
 def linear_SVM():
+    # Step 1: Load and Split Data
     X_train, X_test, y_train, y_test, label_decoder = clean_and_split_data()
 
+    # Step 2: Normalize Data (Fitting only on Training Data)
     scaler = MinMaxScaler()
     scaler.fit(X_train)
     X_train_scaled = scaler.transform(X_train)
     X_test_scaled = scaler.transform(X_test)
 
-    plot_feature_vector_distribution(X_train_scaled, y_train)
-
-    # testing the linear classifier if it is capable?
+    # Step 3: Train on Train-Test Split (Regular Validation)
     linear_classifier = svm.SVC(kernel="linear")
-    linear_classifier.fit(X_train, y_train)
-    y_hat_train = linear_classifier.predict(X_train)
-    y_hat_test = linear_classifier.predict(X_test)
+    linear_classifier.fit(X_train_scaled, y_train)
 
+    # Predictions
+    y_hat_train = linear_classifier.predict(X_train_scaled)
+    y_hat_test = linear_classifier.predict(X_test_scaled)
+
+    # Compute Metrics
     test_accuracy = metrics.accuracy_score(y_test, y_hat_test)
-
     test_precision = metrics.precision_score(y_test, y_hat_test, average="macro")
-
     test_recall = metrics.recall_score(y_test, y_hat_test, average="macro")
-
     test_f1 = metrics.f1_score(y_test, y_hat_test, average="macro")
 
-    print("Classification Report:")
+    print("\n=== Regular Validation Results (Train-Test Split) ===")
+    print("Accuracy:", test_accuracy)
+    print("Precision:", test_precision)
+    print("Recall:", test_recall)
+    print("F1 Score:", test_f1)
+
+    print("\nClassification Report:")
     print(
         metrics.classification_report(
             y_test, y_hat_test, target_names=label_decoder.classes_
         )
     )
 
+    # Plot Confusion Matrix for Regular Validation
     plot_confusion_matrix(
         y_test,
         y_hat_test,
@@ -137,6 +144,36 @@ def linear_SVM():
         model_name="Linear SVM",
     )
 
+    # Step 4: Cross-Validation
+    print("\n=== Cross-Validation Results (5-Fold) ===")
+    kfold = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+
+    cross_val_model = svm.SVC(kernel="linear")
+    scores = cross_val_score(
+        cross_val_model, X_train_scaled, y_train, cv=kfold, scoring="accuracy"
+    )
+
+    print("Cross-validation scores:", scores)
+    print("Mean cross-validation accuracy:", np.mean(scores))
+    print("Standard deviation:", np.std(scores))
+
+    # Step 5: Train Final Model on Full Training Set and Evaluate on X_test
+    final_model = svm.SVC(kernel="linear")
+    final_model.fit(X_train_scaled, y_train)  # Train on full training set
+
+    y_hat_final_test = final_model.predict(X_test_scaled)  # Evaluate on test set
+    final_test_accuracy = metrics.accuracy_score(y_test, y_hat_final_test)
+
+    print("\n=== Final Test Accuracy (After Cross-Validation) ===")
+    print("Final Test Accuracy:", final_test_accuracy)
+
+    # Step 6: Compare Cross-Validation Accuracy vs. Final Test Accuracy
+    print("\n=== Performance Comparison ===")
+    print(f"Mean Cross-Validation Accuracy: {np.mean(scores):.4f}")
+    print(f"Standard Deviation: {np.std(scores):.4f}")
+    print(f"Final Test Accuracy: {final_test_accuracy:.4f}")
+
+    # Plot Metrics
     test_metrics = [test_accuracy, test_precision, test_recall, test_f1]
     metric_names = ["Accuracy", "Precision", "Recall", "F1-score"]
 
@@ -146,13 +183,6 @@ def linear_SVM():
         plot_name="linear_svm_metrics",
         model_name="Linear SVM",
     )
-
-    # X_test_file = get_feature_vector_for_file(
-    #     "data/out_of_ditribution/95bpm_tr8_drm_id_001_0069.wav", 128)
-
-    # y_hat_train = linear_classifier.predict(np.array([X_test_file]))
-
-    # print(label_decoder.inverse_transform(y_hat_train))
 
 
 def RBF_SVM():
