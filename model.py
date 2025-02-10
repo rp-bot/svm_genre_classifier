@@ -110,17 +110,13 @@ def plot_feature_selection_progress(feature_scores):
     plt.savefig("plots/SFS.png")
 
 def linear_SVM():
-    # Step 1: Load and Split Data
     X_train, X_test, y_train, y_test, label_decoder = clean_and_split_data()
 
-    # Step 2: Normalize Data (Fitting only on Training Data)
     scaler = MinMaxScaler()
     scaler.fit(X_train)
     X_train_scaled = scaler.transform(X_train)
     X_test_scaled = scaler.transform(X_test)
-
-    # Step 3: Train on Train-Test Split (Regular Validation)
-    print("\n=== Training Baseline Model (Using All Features) ===")
+    print(f"number of total features: {len(X_train_scaled[0])}")
     baseline_model = svm.SVC(kernel="linear")
     baseline_model.fit(X_train_scaled, y_train)
     y_hat_baseline = baseline_model.predict(X_test_scaled)
@@ -156,7 +152,6 @@ def linear_SVM():
         model_name="Baseline Linear SVM",
     )
 
-    # # Step 4: Cross-Validation
     # print("\n=== Cross-Validation Results (5-Fold) ===")
     # kfold = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 
@@ -169,7 +164,6 @@ def linear_SVM():
     # print("Mean cross-validation accuracy:", np.mean(scores))
     # print("Standard deviation:", np.std(scores))
 
-    # # Step 5: Train Final Model on Full Training Set and Evaluate on X_test
     # final_model = svm.SVC(kernel="linear")
     # final_model.fit(X_train_scaled, y_train)  # Train on full training set
 
@@ -179,16 +173,14 @@ def linear_SVM():
     # print("\n=== Final Test Accuracy (After Cross-Validation) ===")
     # print("Final Test Accuracy:", final_test_accuracy)
 
-    # # Step 6: Compare Cross-Validation Accuracy vs. Final Test Accuracy
     # print("\n=== Performance Comparison ===")
     # print(f"Mean Cross-Validation Accuracy: {np.mean(scores):.4f}")
     # print(f"Standard Deviation: {np.std(scores):.4f}")
     # print(f"Final Test Accuracy: {final_test_accuracy:.4f}")
     
-    print("\n=== Performing Sequential Forward Selection (SFS) ===")
     kfold = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
     base_classifier = svm.SVC(kernel="linear")
-
+    print(kfold)
     sfs = SFS(
         base_classifier,
         n_features_to_select="auto",
@@ -206,8 +198,8 @@ def linear_SVM():
     X_train_selected = sfs.transform(X_train_scaled)
     X_test_selected = sfs.transform(X_test_scaled)
 
-    print(f"\n=== Best Feature Indices: {best_feature_indices} ===")
-   
+    print(f"Best Feature Indices: {best_feature_indices}")
+    print(f"Number of Best Features: {len(best_feature_indices)}")
 
     final_model = svm.SVC(kernel="linear")
     final_model.fit(X_train_selected, y_train)
