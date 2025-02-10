@@ -98,16 +98,49 @@ def plot_feature_vector_distribution(X_train_scaled, y_train):
     plt.tight_layout()
     plt.savefig("plots/feature_vector_distributions.png")
 
-def plot_feature_selection_progress(feature_scores):
-    plt.figure(figsize=(10, 5))
-    plt.plot(range(1, len(feature_scores) + 1), feature_scores, marker='o', linestyle='-')
-    plt.axhline(y=feature_scores[0], color='r', linestyle='--', label="Baseline Accuracy")
+
+def plot_sfs_progression(estimator, X_train_scaled, y_train):
+    """
+    Plots accuracy progression by iterating through feature subsets manually.
+
+    Parameters:
+    - estimator: Model used for feature selection (e.g., SVM).
+    - X_train_scaled: Scaled training data.
+    - y_train: Training labels.
+    """
+    num_features = []
+    accuracy_scores = []
+
+    # Ensure n_features_to_select is within valid range
+    max_features = min(X_train_scaled.shape[1] // 2, X_train_scaled.shape[1] - 1)
+
+    for i in tqdm(range(1, max_features + 1)):  # Limit to safe number of features
+        sfs_temp = SFS(
+            estimator,
+            n_features_to_select=i,
+            direction="forward",
+            cv=5,
+            scoring="accuracy",
+        )
+        sfs_temp.fit(X_train_scaled, y_train)
+        selected_X = sfs_temp.transform(X_train_scaled)
+
+        # Perform cross-validation to get accuracy
+        scores = cross_val_score(
+            estimator, selected_X, y_train, cv=5, scoring="accuracy"
+        )
+        num_features.append(i)
+        accuracy_scores.append(scores.mean())
+
+    plt.figure(figsize=(8, 6))
+    plt.plot(num_features, accuracy_scores, marker="o", linestyle="-", color="b")
     plt.xlabel("Number of Selected Features")
-    plt.ylabel("Cross-Validation Accuracy")
-    plt.title("Sequential Forward Selection)")
-    plt.legend()
+    plt.ylabel("Cross-validated Accuracy")
+    plt.title("SFS Feature Selection Progress")
     plt.grid(True)
-    plt.savefig("plots/SFS.png")
+    plt.xticks(num_features)
+    plt.savefig("plots/SFS_progression.png")
+
 
 def linear_SVM():
     X_train, X_test, y_train, y_test, label_decoder = clean_and_split_data()
@@ -122,7 +155,9 @@ def linear_SVM():
     y_hat_baseline = baseline_model.predict(X_test_scaled)
 
     baseline_accuracy = metrics.accuracy_score(y_test, y_hat_baseline)
-    baseline_precision = metrics.precision_score(y_test, y_hat_baseline, average="macro")
+    baseline_precision = metrics.precision_score(
+        y_test, y_hat_baseline, average="macro"
+    )
     baseline_recall = metrics.recall_score(y_test, y_hat_baseline, average="macro")
     baseline_f1 = metrics.f1_score(y_test, y_hat_baseline, average="macro")
 
@@ -142,7 +177,7 @@ def linear_SVM():
         plot_name="baseline_linear_svm_metrics",
         model_name="Baseline Linear SVM",
     )
-    
+
     # Plot Confusion Matrix for Regular Validation
     plot_confusion_matrix(
         y_test,
@@ -152,58 +187,34 @@ def linear_SVM():
         model_name="Baseline Linear SVM",
     )
 
-    # print("\n=== Cross-Validation Results (5-Fold) ===")
-    # kfold = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-
-    # cross_val_model = svm.SVC(kernel="linear")
-    # scores = cross_val_score(
-    #     cross_val_model, X_train_scaled, y_train, cv=kfold, scoring="accuracy"
-    # )
-
-    # print("Cross-validation scores:", scores)
-    # print("Mean cross-validation accuracy:", np.mean(scores))
-    # print("Standard deviation:", np.std(scores))
-
-    # final_model = svm.SVC(kernel="linear")
-    # final_model.fit(X_train_scaled, y_train)  # Train on full training set
-
-    # y_hat_final_test = final_model.predict(X_test_scaled)  # Evaluate on test set
-    # final_test_accuracy = metrics.accuracy_score(y_test, y_hat_final_test)
-
-    # print("\n=== Final Test Accuracy (After Cross-Validation) ===")
-    # print("Final Test Accuracy:", final_test_accuracy)
-
-    # print("\n=== Performance Comparison ===")
-    # print(f"Mean Cross-Validation Accuracy: {np.mean(scores):.4f}")
-    # print(f"Standard Deviation: {np.std(scores):.4f}")
-    # print(f"Final Test Accuracy: {final_test_accuracy:.4f}")
-    
     kfold = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
     base_classifier = svm.SVC(kernel="linear")
-    print(kfold)
-    sfs = SFS(
+
+    # Plot the SFS accuracy progression
+    plot_sfs_progression(base_classifier, X_train_scaled, y_train)
+
+    # Perform final feature selection
+    sfs_final = SFS(
         base_classifier,
         n_features_to_select="auto",
         direction="forward",
-        cv=5
+        cv=5,
+        scoring="accuracy",
     )
+    sfs_final.fit(X_train_scaled, y_train)
 
-    # Fit SFS to find the best feature subset
-    sfs.fit(X_train_scaled, y_train)
-
-    # Get the best feature indices directly
-    best_feature_indices = sfs.get_support(indices=True)
-
-    # Transform dataset using the selected features
-    X_train_selected = sfs.transform(X_train_scaled)
-    X_test_selected = sfs.transform(X_test_scaled)
+    # Get the best feature indices
+    best_feature_indices = sfs_final.get_support(indices=True)
+    X_train_selected = sfs_final.transform(X_train_scaled)
+    X_test_selected = sfs_final.transform(X_test_scaled)
 
     print(f"Best Feature Indices: {best_feature_indices}")
     print(f"Number of Best Features: {len(best_feature_indices)}")
 
+    # Train final model with selected features
     final_model = svm.SVC(kernel="linear")
     final_model.fit(X_train_selected, y_train)
-    
+
     y_hat_sfs = final_model.predict(X_test_selected)
 
     sfs_accuracy = metrics.accuracy_score(y_test, y_hat_sfs)
@@ -211,30 +222,29 @@ def linear_SVM():
     sfs_recall = metrics.recall_score(y_test, y_hat_sfs, average="macro")
     sfs_f1 = metrics.f1_score(y_test, y_hat_sfs, average="macro")
 
-    print("\nClassification Report:")
+    print("\nSFS Classification Report:")
     print(
         metrics.classification_report(
             y_test, y_hat_sfs, target_names=label_decoder.classes_
         )
     )
 
+    # Plot SFS model metrics
     test_metrics = [sfs_accuracy, sfs_precision, sfs_recall, sfs_f1]
-    metric_names = ["Accuracy", "Precision", "Recall", "F1-score"]
-    
     plot_metrics(
         test_metrics,
         metric_names,
         plot_name="sfs_linear_svm_metrics",
-        model_name="sfs Linear SVM",
+        model_name="SFS Linear SVM",
     )
-    
-    # Plot Confusion Matrix for Regular Validation
+
+    # Plot Confusion Matrix for SFS-selected Model
     plot_confusion_matrix(
         y_test,
         y_hat_sfs,
         label_decoder.classes_,
         plot_name="sfs_linear_svm_confusion_matrix",
-        model_name="sfs Linear SVM",
+        model_name="SFS Linear SVM",
     )
 
 

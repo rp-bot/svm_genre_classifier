@@ -11,6 +11,10 @@ pandas = "*"
 tqdm = "*"
 seaborn = "*"
 shap = "*"
+torch = "*"
+torchaudio = "*"
+torchmetrics = "*"
+torchsummary = "*"
 
 [dev-packages]
 ipykernel = "*"
