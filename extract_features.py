@@ -25,17 +25,14 @@ def process_file(file):
 
     # Read CSV
     data = pd.read_csv(csv_path)
-    bpm_values = data["bpm"].values
 
     feature_list = []
 
     # Process each row
     for i, row in tqdm(data.iterrows(), total=len(data), desc=f"Processing {csv_path}"):
         file_path = row["file_path"]
-        bpm = bpm_values[i]
 
-        # Extract features (Assumes extract_features is defined)
-        features = extract_features(file_path, bpm)
+        features = extract_features(file_path)
         if features is not None:
             feature_list.append(features)
 
@@ -55,7 +52,7 @@ def min_max_normalize(arr):
     return (arr - min_val) / (max_val - min_val)
 
 
-def extract_features(file_path, bpm):
+def legacy_extract_features(file_path, bpm):
     try:
         y, sr = librosa.load(file_path, duration=4, dtype=np.float64)
 
@@ -111,19 +108,121 @@ def extract_features(file_path, bpm):
         return None
 
 
-def experiment1_features(file_path):
-    pass
+# We have time domain characteristics and frequency domain characterisitics.
+# Time Domain:
+# 1. inter-onset interval,
+# 2. Onset Strength,
+# 3. Zero Crossing Rate,
+# 4. Tempo,
+
+# Feq Domain:
+# 1. Spectral Bandwidth,
+# 2. Spectral Centroid
+# 3. Spectral Flatness,
+# 4. Spectral Rolloff,
+# 5. MFCC (13 coefficients)
+
+# we take descriptors for each feature specifically mean and standard deviation to describe the data over time.
 
 
-if __name__ == "__main__":
-    # for file_path in file_paths:
-    #     process_file(file_path)
+def extract_features(file_path):
+    y, sr = librosa.load(file_path, duration=4, dtype=np.float64)
+    fade_out_samples = int(0.5 * sr)  # fade out by half a second
+    fade_out_envelope = np.linspace(1, 0, fade_out_samples)
+    y[-fade_out_samples:] *= fade_out_envelope
 
-    # Use up to the number of available CPUs
-    # num_workers = min(len(file_paths), cpu_count())
-    # with Pool(num_workers) as pool:
-    #     pool.map(process_file, file_paths)
-    # Load the drum audio file
+    # time domain
+    # ========================================================= #
+    # Tempo
+    tempo, beat_frames = librosa.beat.beat_track(y=y, sr=sr)
+
+    # Onset Strength
+    onset_env = librosa.onset.onset_strength(y=y, sr=sr)
+
+    # IOI (inter Onset Interval)
+    beat_times = librosa.frames_to_time(beat_frames, sr=sr)
+    if len(beat_times) > 1:
+        iois = np.diff(beat_times)
+    else:
+        iois = np.array([0])
+
+    # Zero Crossing Rate
+    zcr = librosa.feature.zero_crossing_rate(y)
+    # ========================================================= #
+
+    # freq domain
+    # ========================================================= #
+    spec_centroid = librosa.feature.spectral_centroid(
+        y=y, sr=sr
+    )  # gives us the brightness
+    spec_bandwidth = librosa.feature.spectral_bandwidth(
+        y=y, sr=sr
+    )  # variety of frequencies
+    spec_rolloff = librosa.feature.spectral_rolloff(
+        y=y, sr=sr
+    )  # under which frequency per bin does most of the energy exist?
+    spec_flatness = librosa.feature.spectral_flatness(
+        y=y
+    )  # how uniform is the distribution? found more in percussive sounds.
+    mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)
+
+    
+
+    aggregated_features = {
+            "mean_onset": np.array([np.mean(onset_env)]),
+            "std_onset": np.array([np.std(onset_env)]),
+            "mean_zcr": np.array([np.mean(zcr)]),
+            "std_zcr": np.array([np.std(zcr)]),
+            "mean_ioi": np.array([np.mean(iois)]),
+            "std_ioi": np.array([np.std(iois)]),
+            "tempo": tempo,
+            "mean_centroid": np.array([np.mean(spec_centroid)]),
+            "std_centroid": np.array([np.std(spec_centroid)]),
+            "mean_bandwidth": np.array([np.mean(spec_bandwidth)]),
+            "std_bandwidth": np.array([np.std(spec_bandwidth)]),
+            "mean_rolloff": np.array([np.mean(spec_rolloff)]),
+            "std_rolloff": np.array([np.std(spec_rolloff)]),
+            "mean_flatness": np.array([np.mean(spec_flatness)]),
+            "std_flatness": np.array([np.std(spec_flatness)]),
+            "mean_mfcc": np.mean(mfcc, axis=1),
+            "std_mfcc": np.std(mfcc, axis=1),
+        }
+    
+
+    feature_vector = np.concatenate(
+        [
+            aggregated_features["mean_onset"],
+            aggregated_features["std_onset"],
+            #
+            aggregated_features["mean_zcr"],
+            aggregated_features["std_zcr"],
+            #
+            aggregated_features["mean_ioi"],
+            aggregated_features["std_ioi"],
+            #
+            aggregated_features["tempo"],
+            # ==========================#
+            aggregated_features["mean_centroid"],
+            aggregated_features["std_centroid"],
+            #
+            aggregated_features["mean_bandwidth"],
+            aggregated_features["std_bandwidth"],
+            #
+            aggregated_features["mean_rolloff"],
+            aggregated_features["std_rolloff"],
+            #
+            aggregated_features["mean_flatness"],
+            aggregated_features["std_flatness"],
+            #
+            aggregated_features["mean_mfcc"],
+            aggregated_features["std_mfcc"],
+        ]
+    )
+
+    return feature_vector
+
+
+def plot_features():
     audio_path = "data/pop_rok_drm_id_001_wav/100bpm_pop_rok_drm_id_001_0001.wav"
     y, sr = librosa.load(audio_path, duration=4, dtype=np.float64)
 
@@ -140,10 +239,7 @@ if __name__ == "__main__":
     beat_times = librosa.frames_to_time(beat_frames, sr=sr)
 
     # Compute inter-onset intervals (IOIs) in seconds
-    if len(beat_times) > 1:
-        iois = np.diff(beat_times)
-    else:
-        iois = np.array([0])  # default value when only one beat is detected
+    iois = np.diff(beat_times)
 
     # Compute the zero crossing rate (ZCR)
     zcr = librosa.feature.zero_crossing_rate(y)
@@ -218,8 +314,11 @@ if __name__ == "__main__":
     spec_flatness = librosa.feature.spectral_flatness(
         y=y
     )  # how uniform is the distribution? found more in percussive sounds.
+    mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)
 
-    # Aggregate the spectral features across time (using mean and standard deviation)
+    frames = range(spec_centroid.shape[1])
+    time_axis = librosa.frames_to_time(frames, sr=sr)
+
     aggregated_spectral_features = {
         "mean_centroid": np.mean(spec_centroid),
         "std_centroid": np.std(spec_centroid),
@@ -229,6 +328,85 @@ if __name__ == "__main__":
         "std_rolloff": np.std(spec_rolloff),
         "mean_flatness": np.mean(spec_flatness),
         "std_flatness": np.std(spec_flatness),
+        "mean_mfcc": np.mean(mfcc, axis=1),
+        "std_mfcc": np.std(mfcc, axis=1),
     }
 
-    print("Aggregated Spectral Features:", aggregated_spectral_features)
+    fig, axs = plt.subplots(5, 1, figsize=(10, 12), sharex=True)
+
+    # Spectral Centroid (brightness)
+    axs[0].plot(time_axis, spec_centroid[0], color="b")
+    axs[0].set_facecolor("0.9")
+    axs[0].grid(
+        color="gray",
+        linestyle="--",
+        alpha=0.5,
+        linewidth=0.5,
+    )
+    axs[0].set_title("Spectral Centroid")
+    axs[0].set_ylim(0, 12_000)
+    axs[0].set_ylabel("Hz")
+
+    # Spectral Bandwidth (variety of frequencies)
+    axs[1].plot(time_axis, spec_bandwidth[0], color="g")
+    axs[1].set_facecolor("0.9")
+    axs[1].grid(
+        color="gray",
+        linestyle="--",
+        alpha=0.5,
+        linewidth=0.5,
+    )
+    axs[1].set_ylim(0, 12_000)
+
+    axs[1].set_title("Spectral Bandwidth")
+    axs[1].set_ylabel("Hz")
+
+    # Spectral Rolloff (frequency under which most energy exists)
+    axs[2].plot(time_axis, spec_rolloff[0], color="m")
+    axs[2].set_facecolor("0.9")
+    axs[2].grid(
+        color="gray",
+        linestyle="--",
+        alpha=0.5,
+        linewidth=0.5,
+    )
+    axs[2].set_ylim(0, 12_000)
+
+    axs[2].set_title("Spectral Rolloff")
+    axs[2].set_ylabel("Hz")
+
+    # Spectral Flatness (uniformity of the spectrum)
+    axs[3].plot(time_axis, spec_flatness[0], color="r")
+    axs[3].set_facecolor("0.9")
+    axs[3].grid(
+        color="gray",
+        linestyle="--",
+        alpha=0.5,
+        linewidth=0.5,
+    )
+    axs[3].set_ylim(0, 1)
+    axs[3].set_title("Spectral Flatness")
+    axs[3].set_ylabel("Flatness")
+
+    # MFCCs: Use librosa's specshow to visualize the coefficients
+    img = librosa.display.specshow(mfcc, x_axis="time", sr=sr, ax=axs[4])
+    axs[4].set_yticks(np.arange(mfcc.shape[0]))
+    axs[4].set_yticklabels(np.arange(1, mfcc.shape[0] + 1))
+    axs[4].set_title("MFCC ")
+    axs[4].set_ylabel("MFCC Coefficients")
+
+    plt.xlabel("Time (s)")
+    plt.tight_layout()
+    plt.savefig("temp.png")
+    pprint(aggregated_spectral_features)
+
+
+if __name__ == "__main__":
+    for file_path in file_paths:
+        process_file(file_path)
+
+    # num_workers = min(len(file_paths), cpu_count())
+    # with Pool(num_workers) as pool:
+    #     pool.map(process_file, file_paths)
+
+    # plot_features()

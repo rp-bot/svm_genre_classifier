@@ -30,7 +30,7 @@ def inverse_scale_bpm(scaled_bpm):
     return bpm_original[0, 0]
 
 
-def clean_and_split_data():
+def legacy_clean_and_split_data():
     sm_features_labels = np.load("data/wrld_smb_drm_features_and_labels.npz")
 
     hh_features_labels = np.load("data/hh_lfbb_lps_mid_001-009.npz")
@@ -75,6 +75,44 @@ def clean_and_split_data():
         [sm_data, hh_data_len_reduced, tr9_data_len_reduced, pop_data_len_reduced]
     )
 
+    labels = ["world_samba", "hip_hop_lofi_boom_bap", "pop_rock", "edm_tr_909"]
+
+    label_encoder = LabelEncoder()
+    encoded_labels = label_encoder.fit_transform(labels)
+
+    expanded_labels = np.concatenate(
+        [
+            np.full(1100, encoded_labels[0]),  # world_samba
+            np.full(1100, encoded_labels[1]),  # hip_hop_lofi_boom_bap
+            np.full(1100, encoded_labels[2]),  # pop_rock
+            np.full(1100, encoded_labels[3]),  # edm_tr_909
+        ]
+    )
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        concatenated_dataset,
+        expanded_labels,
+        test_size=0.3,
+        stratify=expanded_labels,
+        shuffle=True,
+    )
+
+    return X_train, X_test, y_train, y_test, label_encoder
+
+
+def clean_and_split_data():
+    sm_features_labels = np.load("data/wrld_smb_drm_features_and_labels.npz")
+    hh_features_labels = np.load("data/hh_lfbb_lps_mid_001-009.npz")
+    tr9_feature_labels = np.load("data/edm_tr9_drm_id_001.npz")
+    pop_feature_labels = np.load("data/pop_rok_drm_id_001_wav.npz")
+
+    sm_data = sm_features_labels["features"]
+    hh_data = hh_features_labels["features"]
+    tr9_data = tr9_feature_labels["features"]
+    pop_data = pop_feature_labels["features"]
+
+    concatenated_dataset = np.concatenate([sm_data, hh_data, tr9_data, pop_data])
+    
     labels = ["world_samba", "hip_hop_lofi_boom_bap", "pop_rock", "edm_tr_909"]
 
     label_encoder = LabelEncoder()
@@ -168,4 +206,4 @@ def TSNE_plotter(final_data_set):
 
 
 if __name__ == "__main__":
-    print("hello")
+    clean_and_split_data()

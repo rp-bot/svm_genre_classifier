@@ -15,6 +15,7 @@ torch = "*"
 torchaudio = "*"
 torchmetrics = "*"
 torchsummary = "*"
+mlxtend = "*"
 
 [dev-packages]
 ipykernel = "*"

@@ -1,8 +1,12 @@
+from pprint import pprint
 from sklearn import svm
 from sklearn.model_selection import cross_val_score, StratifiedKFold
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.feature_selection import SequentialFeatureSelector as SFS
+
+# from sklearn.feature_selection import SequentialFeatureSelector as SFS
+from mlxtend.feature_selection import SequentialFeatureSelector as SFS
+from mlxtend.plotting import plot_sequential_feature_selection as plot_sfs
 from sklearn import metrics
 from _dataloader import clean_and_split_data, get_feature_vector_for_file
 import numpy as np
@@ -61,19 +65,28 @@ def plot_confusion_matrix(y_true, y_pred, class_labels, plot_name, model_name):
 
 def plot_feature_vector_distribution(X_train_scaled, y_train):
 
-    feature_names = []
+    feature_names = [
+        "mean_onset",
+        "std_onset",
+        "mean_zcr",
+        "std_zcr",
+        "mean_ioi",
+        "std_ioi",
+        "tempo",
+        "mean_centroid",
+        "std_centroid",
+        "mean_bandwidth",
+        "std_bandwidth",
+        "mean_rolloff",
+        "std_rolloff",
+        "mean_flatness",
+        "std_flatness",
+    ]
 
     feature_names += [f"MFCC_{idx+1}_mean" for idx in range(13)]
 
     feature_names += [f"MFCC_{idx+1}_std" for idx in range(13)]
 
-    feature_names += ["Onset_mean", "Onset_std", "RMS_mean", "RMS_std"]
-
-    feature_names += [f"SpecContr{idx+1}_mean" for idx in range(7)]
-
-    feature_names += [f"SpecContr{idx+1}_std" for idx in range(7)]
-
-    feature_names += ["ZCR_mean", "ZCR_std", "SpecCent_mean", "SpecCent_std", "BPM"]
     class_labels = ["samba", "hip_hop", "pop_rock", "tr_909"]
 
     # Convert normalized features to a DataFrame
@@ -81,10 +94,10 @@ def plot_feature_vector_distribution(X_train_scaled, y_train):
     df["Class"] = [class_labels[label] for label in y_train]
 
     num_features = len(feature_names)
-    num_cols = 5
+    num_cols = 10
     num_rows = int(np.ceil(num_features / num_cols))
 
-    plt.figure(figsize=(20, num_rows * 4))
+    plt.figure(figsize=(40, num_rows * 4))
 
     for i, feature in tqdm(enumerate(feature_names), total=num_features):
         plt.subplot(num_rows, num_cols, i + 1)
@@ -96,7 +109,7 @@ def plot_feature_vector_distribution(X_train_scaled, y_train):
         plt.ylabel("Density")
 
     plt.tight_layout()
-    plt.savefig("plots/feature_vector_distributions.png")
+    plt.savefig("plots/feature_vector_distributions_2.png")
 
 
 def plot_sfs_progression(estimator, X_train_scaled, y_train):
@@ -361,10 +374,101 @@ def random_forest_classifier():
         print(f"{class_name}: {prob:.4f}")
 
 
+def SVM():
+    X_train, X_test, y_train, y_test, label_decoder = clean_and_split_data()
+
+    scaler = MinMaxScaler()
+    scaler.fit(X_train)
+    X_train_scaled = scaler.transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+
+    # plot_feature_vector_distribution(X_train_scaled, y_train)
+    X_train_experiment_1 = X_train_scaled[:, :7]
+    X_test_experiment_1 = X_test_scaled[:, :7]
+    print(X_train_experiment_1.shape)
+
+    X_train_experiment_2 = X_train_scaled[:, 8:]
+    X_test_experiment_2 = X_test_scaled[:, 8:]
+    print(X_train_experiment_2.shape)
+
+    # ================================================================== #
+    # Experiemnt 1 only time domain features
+    # Fit the data and predict (base model)
+    experiment_1_base = svm.SVC(kernel="linear")
+    experiment_1_base.fit(X_train_experiment_1, y_train)
+    y_hat_experiment_1_base = experiment_1_base.predict(X_test_experiment_1)
+
+    experiment_1 = SFS(
+        experiment_1_base,
+        k_features=6,
+        forward=True,
+        floating=False,
+        verbose=2,
+        scoring="accuracy",
+        cv=5,
+    )
+    experiment_1.fit(X_train_experiment_1, y_train)
+    y_hat_experiment_1 = experiment_1.predict(X_test_experiment_1)
+
+    fig1 = plot_sfs(experiment_1.get_metric_dict(), kind="std_dev")
+
+    # plt.ylim([0.8, 1])
+    plt.title("Sequential Forward Selection (w. StdDev)")
+    plt.grid()
+    plt.savefig("temp.png")
+
+    # compute metrics
+    metric_names = ["Accuracy", "Precision", "Recall", "F1-score"]
+    experiment_1_base_accuracy = metrics.accuracy_score(y_test, y_hat_experiment_1_base)
+    experiment_1_accuracy = metrics.accuracy_score(y_test, y_hat_experiment_1)
+    experiment_1__base_precision = metrics.precision_score(
+        y_test, y_hat_experiment_1_base, average="macro"
+    )
+    experiment_1_precision = metrics.precision_score(
+        y_test, y_hat_experiment_1, average="macro"
+    )
+    experiment_1_recall = metrics.recall_score(
+        y_test, y_hat_experiment_1, average="macro"
+    )
+    experiment_1_f1 = metrics.f1_score(y_test, y_hat_experiment_1, average="macro")
+
+    print("\nClassification Report:")
+    print(
+        metrics.classification_report(
+            y_test, y_hat_experiment_1, target_names=label_decoder.classes_
+        )
+    )
+    # Plot Metrics
+    experiment_1_test_metrics = [
+        experiment_1_accuracy,
+        experiment_1_precision,
+        experiment_1_recall,
+        experiment_1_f1,
+    ]
+
+    plot_metrics(
+        experiment_1_test_metrics,
+        metric_names,
+        plot_name="experiment_1_linear_svm_metrics",
+        model_name="experiment_1 Linear SVM",
+    )
+
+    # Plot Confusion Matrix for Regular Validation
+    plot_confusion_matrix(
+        y_test,
+        y_hat_experiment_1,
+        label_decoder.classes_,
+        plot_name="experiment_1_linear_svm_confusion_matrix",
+        model_name="experiment_1 Linear SVM",
+    )
+    # ================================================================== #
+    # experiment_2 =
+
+
 if __name__ == "__main__":
 
-    linear_SVM()
-
+    # linear_SVM()
+    SVM()
     # RBF_SVM()
 
     # random_forest_classifier()
