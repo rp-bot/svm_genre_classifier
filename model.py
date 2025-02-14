@@ -43,7 +43,7 @@ def plot_metrics(test_metrics, metric_names, model_name, plot_name):
             va="bottom",
         )
 
-    plt.savefig(f"plots/{plot_name}.png")
+    plt.savefig(f"plots/metrics/{plot_name}.png")
 
 
 def plot_confusion_matrix(y_true, y_pred, class_labels, plot_name, model_name):
@@ -60,7 +60,7 @@ def plot_confusion_matrix(y_true, y_pred, class_labels, plot_name, model_name):
     plt.xlabel("Predicted Label")
     plt.ylabel("True Label")
     plt.title(f"{model_name} Confusion Matrix")
-    plt.savefig(f"plots/{plot_name}.png")
+    plt.savefig(f"plots/metrics/{plot_name}.png")
 
 
 def plot_feature_vector_distribution(X_train_scaled, y_train):
@@ -109,7 +109,7 @@ def plot_feature_vector_distribution(X_train_scaled, y_train):
         plt.ylabel("Density")
 
     plt.tight_layout()
-    plt.savefig("plots/feature_vector_distributions_2.png")
+    plt.savefig("plots/metrics/feature_vector_distributions_2.png")
 
 
 def plot_sfs_progression(estimator, X_train_scaled, y_train):
@@ -398,6 +398,49 @@ def SVM():
     experiment_1_base.fit(X_train_experiment_1, y_train)
     y_hat_experiment_1_base = experiment_1_base.predict(X_test_experiment_1)
 
+    # compute metrics for baseline
+    metric_names = ["Accuracy", "Precision", "Recall", "F1-score"]
+    experiment_1_base_accuracy = metrics.accuracy_score(y_test, y_hat_experiment_1_base)
+    experiment_1__base_precision = metrics.precision_score(
+        y_test, y_hat_experiment_1_base, average="macro"
+    )
+    experiment_1__base_recall = metrics.recall_score(
+        y_test, y_hat_experiment_1_base, average="macro"
+    )
+    experiment_1__base_f1 = metrics.f1_score(
+        y_test, y_hat_experiment_1_base, average="macro"
+    )
+    print("\nClassification Report Experiment 1 Baseline:")
+    print(
+        metrics.classification_report(
+            y_test, y_hat_experiment_1_base, target_names=label_decoder.classes_
+        )
+    )
+    experiment_1_test_metrics = [
+        experiment_1_base_accuracy,
+        experiment_1__base_precision,
+        experiment_1__base_recall,
+        experiment_1__base_f1,
+    ]
+
+    plot_metrics(
+        experiment_1_test_metrics,
+        metric_names,
+        plot_name="experiment_1_baseline_linear_svm_metrics",
+        model_name="experiment_1_baseline Linear SVM",
+    )
+
+    # Plot Confusion Matrix for Regular Validation
+    plot_confusion_matrix(
+        y_test,
+        y_hat_experiment_1_base,
+        label_decoder.classes_,
+        plot_name="experiment_1_baseline_linear_svm_confusion_matrix",
+        model_name="experiment_1_baseline Linear SVM",
+    )
+
+    # ======================================================================#
+    # Feature Selection
     experiment_1 = SFS(
         experiment_1_base,
         k_features=6,
@@ -408,22 +451,20 @@ def SVM():
         cv=5,
     )
     experiment_1.fit(X_train_experiment_1, y_train)
-    y_hat_experiment_1 = experiment_1.predict(X_test_experiment_1)
+    X_train_experiment_1_selected = experiment_1.transform(X_train_experiment_1)
+    X_test_experiment_1_selected = experiment_1.transform(X_test_experiment_1)
+    experiment_1_base.fit(X_train_experiment_1_selected, y_train)
+    y_hat_experiment_1 = experiment_1_base.predict(X_test_experiment_1_selected)
 
     fig1 = plot_sfs(experiment_1.get_metric_dict(), kind="std_dev")
 
     # plt.ylim([0.8, 1])
-    plt.title("Sequential Forward Selection (w. StdDev)")
+    plt.title("Sequential Forward Selection Experiemnt 1 (time domain features)")
     plt.grid()
-    plt.savefig("temp.png")
+    plt.savefig("plots/metrics/SFS_experiment_1.png")
 
-    # compute metrics
-    metric_names = ["Accuracy", "Precision", "Recall", "F1-score"]
-    experiment_1_base_accuracy = metrics.accuracy_score(y_test, y_hat_experiment_1_base)
+    # compute metrics for Experiment 1
     experiment_1_accuracy = metrics.accuracy_score(y_test, y_hat_experiment_1)
-    experiment_1__base_precision = metrics.precision_score(
-        y_test, y_hat_experiment_1_base, average="macro"
-    )
     experiment_1_precision = metrics.precision_score(
         y_test, y_hat_experiment_1, average="macro"
     )
@@ -432,7 +473,7 @@ def SVM():
     )
     experiment_1_f1 = metrics.f1_score(y_test, y_hat_experiment_1, average="macro")
 
-    print("\nClassification Report:")
+    print("\nClassification Report Experiment 1:")
     print(
         metrics.classification_report(
             y_test, y_hat_experiment_1, target_names=label_decoder.classes_
