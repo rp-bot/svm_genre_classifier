@@ -17,7 +17,7 @@ import pandas as pd
 from tqdm import tqdm
 
 
-def plot_metrics(test_metrics, metric_names, model_name, plot_name):
+def plot_metrics(test_metrics, metric_names, model_name, plot_name, folder):
     x = np.arange(len(metric_names))
     width = 0.35
 
@@ -43,10 +43,10 @@ def plot_metrics(test_metrics, metric_names, model_name, plot_name):
             va="bottom",
         )
 
-    plt.savefig(f"plots/metrics/{plot_name}.png")
+    plt.savefig(f"plots/metrics/{folder}/{plot_name}.png")
 
 
-def plot_confusion_matrix(y_true, y_pred, class_labels, plot_name, model_name):
+def plot_confusion_matrix(y_true, y_pred, class_labels, plot_name, model_name, folder):
     cm = metrics.confusion_matrix(y_true, y_pred, normalize="true")
     plt.figure(figsize=(8, 6))
     sns.heatmap(
@@ -60,7 +60,7 @@ def plot_confusion_matrix(y_true, y_pred, class_labels, plot_name, model_name):
     plt.xlabel("Predicted Label")
     plt.ylabel("True Label")
     plt.title(f"{model_name} Confusion Matrix")
-    plt.savefig(f"plots/metrics/{plot_name}.png")
+    plt.savefig(f"plots/metrics/{folder}/{plot_name}.png")
 
 
 def plot_feature_vector_distribution(X_train_scaled, y_train):
@@ -374,7 +374,49 @@ def random_forest_classifier():
         print(f"{class_name}: {prob:.4f}")
 
 
-def SVM():
+def compute_metrics_and_plot(
+    y_test, y_hat, label_decoder, plot_file_name, plot_title, folder
+):
+    metric_names = ["Accuracy", "Precision", "Recall", "F1-score"]
+    base_classifier_accuracy = metrics.accuracy_score(y_test, y_hat)
+    experiment_1__base_precision = metrics.precision_score(
+        y_test, y_hat, average="macro"
+    )
+    experiment_1__base_recall = metrics.recall_score(y_test, y_hat, average="macro")
+    experiment_1__base_f1 = metrics.f1_score(y_test, y_hat, average="macro")
+    print(f"\nClassification Report {folder} Baseline:")
+    print(
+        metrics.classification_report(
+            y_test, y_hat, target_names=label_decoder.classes_
+        )
+    )
+    experiment_1_test_metrics = [
+        base_classifier_accuracy,
+        experiment_1__base_precision,
+        experiment_1__base_recall,
+        experiment_1__base_f1,
+    ]
+
+    plot_metrics(
+        experiment_1_test_metrics,
+        metric_names,
+        plot_name=f"{plot_file_name}_metrics",
+        model_name=plot_title,
+        folder=folder,
+    )
+
+    # Plot Confusion Matrix for Regular Validation
+    plot_confusion_matrix(
+        y_test,
+        y_hat,
+        label_decoder.classes_,
+        plot_name=f"{plot_file_name}_confusion_matrix",
+        model_name=plot_title,
+        folder=folder,
+    )
+
+
+def SVM(experiment_number=1):
     X_train, X_test, y_train, y_test, label_decoder = clean_and_split_data()
 
     scaler = MinMaxScaler()
@@ -391,125 +433,166 @@ def SVM():
     X_test_experiment_2 = X_test_scaled[:, 8:]
     print(X_train_experiment_2.shape)
 
+    X_train_experiment_3 = X_train_scaled[:, 8:][:, ::-1]
+    X_test_experiment_3 = X_test_scaled[:, 8:][:, ::-1]
+
     # ================================================================== #
     # Experiemnt 1 only time domain features
     # Fit the data and predict (base model)
-    experiment_1_base = svm.SVC(kernel="linear")
-    experiment_1_base.fit(X_train_experiment_1, y_train)
-    y_hat_experiment_1_base = experiment_1_base.predict(X_test_experiment_1)
+    if experiment_number == 1:
 
-    # compute metrics for baseline
-    metric_names = ["Accuracy", "Precision", "Recall", "F1-score"]
-    experiment_1_base_accuracy = metrics.accuracy_score(y_test, y_hat_experiment_1_base)
-    experiment_1__base_precision = metrics.precision_score(
-        y_test, y_hat_experiment_1_base, average="macro"
-    )
-    experiment_1__base_recall = metrics.recall_score(
-        y_test, y_hat_experiment_1_base, average="macro"
-    )
-    experiment_1__base_f1 = metrics.f1_score(
-        y_test, y_hat_experiment_1_base, average="macro"
-    )
-    print("\nClassification Report Experiment 1 Baseline:")
-    print(
-        metrics.classification_report(
-            y_test, y_hat_experiment_1_base, target_names=label_decoder.classes_
+        base_classifier_experiment_1 = svm.SVC(kernel="linear")
+        base_classifier_experiment_1.fit(X_train_experiment_1, y_train)
+        y_hat_base_classifier_experiment_1 = base_classifier_experiment_1.predict(
+            X_test_experiment_1
         )
-    )
-    experiment_1_test_metrics = [
-        experiment_1_base_accuracy,
-        experiment_1__base_precision,
-        experiment_1__base_recall,
-        experiment_1__base_f1,
-    ]
 
-    plot_metrics(
-        experiment_1_test_metrics,
-        metric_names,
-        plot_name="experiment_1_baseline_linear_svm_metrics",
-        model_name="experiment_1_baseline Linear SVM",
-    )
-
-    # Plot Confusion Matrix for Regular Validation
-    plot_confusion_matrix(
-        y_test,
-        y_hat_experiment_1_base,
-        label_decoder.classes_,
-        plot_name="experiment_1_baseline_linear_svm_confusion_matrix",
-        model_name="experiment_1_baseline Linear SVM",
-    )
-
-    # ======================================================================#
-    # Feature Selection
-    experiment_1 = SFS(
-        experiment_1_base,
-        k_features=6,
-        forward=True,
-        floating=False,
-        verbose=2,
-        scoring="accuracy",
-        cv=5,
-    )
-    experiment_1.fit(X_train_experiment_1, y_train)
-    X_train_experiment_1_selected = experiment_1.transform(X_train_experiment_1)
-    X_test_experiment_1_selected = experiment_1.transform(X_test_experiment_1)
-    experiment_1_base.fit(X_train_experiment_1_selected, y_train)
-    y_hat_experiment_1 = experiment_1_base.predict(X_test_experiment_1_selected)
-
-    fig1 = plot_sfs(experiment_1.get_metric_dict(), kind="std_dev")
-
-    # plt.ylim([0.8, 1])
-    plt.title("Sequential Forward Selection Experiemnt 1 (time domain features)")
-    plt.grid()
-    plt.savefig("plots/metrics/SFS_experiment_1.png")
-
-    # compute metrics for Experiment 1
-    experiment_1_accuracy = metrics.accuracy_score(y_test, y_hat_experiment_1)
-    experiment_1_precision = metrics.precision_score(
-        y_test, y_hat_experiment_1, average="macro"
-    )
-    experiment_1_recall = metrics.recall_score(
-        y_test, y_hat_experiment_1, average="macro"
-    )
-    experiment_1_f1 = metrics.f1_score(y_test, y_hat_experiment_1, average="macro")
-
-    print("\nClassification Report Experiment 1:")
-    print(
-        metrics.classification_report(
-            y_test, y_hat_experiment_1, target_names=label_decoder.classes_
+        # compute metrics for baseline
+        compute_metrics_and_plot(
+            y_test,
+            y_hat_base_classifier_experiment_1,
+            label_decoder,
+            plot_file_name="base_experiment_1",
+            plot_title="Experiment 1 Baseline (time domain)",
+            folder="experiment_1",
         )
-    )
-    # Plot Metrics
-    experiment_1_test_metrics = [
-        experiment_1_accuracy,
-        experiment_1_precision,
-        experiment_1_recall,
-        experiment_1_f1,
-    ]
 
-    plot_metrics(
-        experiment_1_test_metrics,
-        metric_names,
-        plot_name="experiment_1_linear_svm_metrics",
-        model_name="experiment_1 Linear SVM",
-    )
+        # ======================================================================#
+        # Feature Selection
+        experiment_1 = SFS(
+            base_classifier_experiment_1,
+            k_features=6,
+            forward=True,
+            floating=False,
+            verbose=2,
+            scoring="accuracy",
+            cv=5,
+        )
+        experiment_1.fit(X_train_experiment_1, y_train)
+        X_train_experiment_1_selected = experiment_1.transform(X_train_experiment_1)
+        X_test_experiment_1_selected = experiment_1.transform(X_test_experiment_1)
+        base_classifier_experiment_1.fit(X_train_experiment_1_selected, y_train)
+        y_hat_experiment_1 = base_classifier_experiment_1.predict(
+            X_test_experiment_1_selected
+        )
 
-    # Plot Confusion Matrix for Regular Validation
-    plot_confusion_matrix(
-        y_test,
-        y_hat_experiment_1,
-        label_decoder.classes_,
-        plot_name="experiment_1_linear_svm_confusion_matrix",
-        model_name="experiment_1 Linear SVM",
-    )
+        fig1 = plot_sfs(experiment_1.get_metric_dict(), kind="std_dev")
+
+        # plt.ylim([0.8, 1])
+        plt.title("Sequential Forward Selection Experiemnt 1 (time domain features)")
+        plt.grid()
+        plt.savefig("plots/metrics/experiment_1/SFS_experiment_1.png")
+
+        # compute metrics for Experiment 1
+        compute_metrics_and_plot(
+            y_test,
+            y_hat_experiment_1,
+            label_decoder,
+            plot_file_name="experiment_1",
+            plot_title="Experiment 1 (time domain)",
+            folder="experiment_1",
+        )
+
     # ================================================================== #
-    # experiment_2 =
+    # Spectral Features
+    elif experiment_number == 2:
+        base_classifier_experiment_2 = svm.SVC(kernel="linear")
+        base_classifier_experiment_2.fit(X_train_experiment_2, y_train)
+        y_hat_base_classifier_experiment_2 = base_classifier_experiment_2.predict(
+            X_test_experiment_2
+        )
+
+        # compute metrics for baseline
+        compute_metrics_and_plot(
+            y_test,
+            y_hat_base_classifier_experiment_2,
+            label_decoder,
+            plot_file_name="base_experiment_2",
+            plot_title="Experiment 2 Baseline (spectral features)",
+            folder="experiment_2",
+        )
+
+        # Feature Selection
+        experiment_2 = SFS(
+            base_classifier_experiment_2,
+            k_features=32,
+            forward=True,
+            floating=False,
+            verbose=2,
+            scoring="accuracy",
+            cv=5,
+        )
+        experiment_2.fit(X_train_experiment_2, y_train)
+        X_train_experiment_2_selected = experiment_2.transform(X_train_experiment_2)
+        X_test_experiment_2_selected = experiment_2.transform(X_test_experiment_2)
+        base_classifier_experiment_2.fit(X_train_experiment_2_selected, y_train)
+        y_hat_experiment_2 = base_classifier_experiment_2.predict(
+            X_test_experiment_2_selected
+        )
+
+        fig1 = plot_sfs(experiment_2.get_metric_dict(), kind="std_dev", figsize=(8, 6))
+
+        # plt.ylim([0.8, 1])
+        plt.title("Sequential Forward Selection Experiemnt 2 (spectral features)")
+        plt.grid()
+        plt.savefig("plots/metrics/experiment_2/experiment_2_SFS.png")
+
+        # compute metrics for Experiment 2
+        compute_metrics_and_plot(
+            y_test,
+            y_hat_experiment_2,
+            label_decoder,
+            plot_file_name="experiment_2",
+            plot_title="Experiment 2 (spectral features)",
+            folder="experiment_2",
+        )
+    elif experiment_number == 3:
+        # =================================================================================#
+        # experiment 3 backward selection
+        base_classifier_experiment_3 = svm.SVC(kernel="linear")
+        base_classifier_experiment_3.fit(X_train_experiment_3, y_train)
+
+        experiment_3 = SFS(
+            base_classifier_experiment_3,
+            k_features=32,
+            forward=True,
+            floating=False,
+            verbose=2,
+            scoring="accuracy",
+            cv=5,
+        )
+        experiment_3.fit(X_train_experiment_3, y_train)
+        X_train_experiment_3_selected = experiment_3.transform(X_train_experiment_3)
+        X_test_experiment_3_selected = experiment_3.transform(X_test_experiment_3)
+        base_classifier_experiment_3.fit(X_train_experiment_3_selected, y_train)
+        y_hat_experiment_3 = base_classifier_experiment_3.predict(
+            X_test_experiment_3_selected
+        )
+
+        fig1 = plot_sfs(experiment_3.get_metric_dict(), kind="std_dev", figsize=(8, 6))
+
+        # plt.ylim([0.8, 1])
+        plt.title(
+            "Sequential Forward Selection Reversed Experiemnt 3 (spectral features)"
+        )
+        plt.grid()
+        plt.savefig("plots/metrics/experiment_3/experiment_3_SFS_reversed.png")
+
+        # compute metrics for Experiment 3
+        compute_metrics_and_plot(
+            y_test,
+            y_hat_experiment_3,
+            label_decoder,
+            plot_file_name="experiment_3",
+            plot_title="Experiment 3 (spectral features)",
+            folder="experiment_3",
+        )
 
 
 if __name__ == "__main__":
 
     # linear_SVM()
-    SVM()
+    SVM(experiment_number=3)
     # RBF_SVM()
 
     # random_forest_classifier()
