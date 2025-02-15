@@ -396,24 +396,24 @@ def compute_metrics_and_plot(
         experiment_1__base_recall,
         experiment_1__base_f1,
     ]
-
-    plot_metrics(
-        experiment_1_test_metrics,
-        metric_names,
-        plot_name=f"{plot_file_name}_metrics",
-        model_name=plot_title,
-        folder=folder,
-    )
+    pprint(experiment_1_test_metrics)
+    # plot_metrics(
+    #     experiment_1_test_metrics,
+    #     metric_names,
+    #     plot_name=f"{plot_file_name}_metrics",
+    #     model_name=plot_title,
+    #     folder=folder,
+    # )
 
     # Plot Confusion Matrix for Regular Validation
-    plot_confusion_matrix(
-        y_test,
-        y_hat,
-        label_decoder.classes_,
-        plot_name=f"{plot_file_name}_confusion_matrix",
-        model_name=plot_title,
-        folder=folder,
-    )
+    # plot_confusion_matrix(
+    #     y_test,
+    #     y_hat,
+    #     label_decoder.classes_,
+    #     plot_name=f"{plot_file_name}_confusion_matrix",
+    #     model_name=plot_title,
+    #     folder=folder,
+    # )
 
 
 def SVM(experiment_number=1):
@@ -427,14 +427,28 @@ def SVM(experiment_number=1):
     # plot_feature_vector_distribution(X_train_scaled, y_train)
     X_train_experiment_1 = X_train_scaled[:, :7]
     X_test_experiment_1 = X_test_scaled[:, :7]
-    print(X_train_experiment_1.shape)
+    print("Experiment 1 Train Set: ", X_train_experiment_1.shape)
+    print("Experiment 1 Test Set: ", X_test_experiment_1.shape)
 
-    X_train_experiment_2 = X_train_scaled[:, 8:]
-    X_test_experiment_2 = X_test_scaled[:, 8:]
-    print(X_train_experiment_2.shape)
+    X_train_experiment_2 = X_train_scaled[:, 7:]
+    X_test_experiment_2 = X_test_scaled[:, 7:]
+    print("Experiment 2 Train Set: ", X_train_experiment_2.shape)
+    print("Experiment 2 Test Set: ", X_test_experiment_2.shape)
 
-    X_train_experiment_3 = X_train_scaled[:, 8:][:, ::-1]
-    X_test_experiment_3 = X_test_scaled[:, 8:][:, ::-1]
+    X_train_experiment_3 = X_train_scaled[:, :15]
+    X_test_experiment_3 = X_test_scaled[:, :15]
+    print("Experiment 3 Train Set: ", X_train_experiment_3.shape)
+    print("Experiment 3 Test Set: ", X_test_experiment_3.shape)
+
+    X_train_experiment_4 = X_train_scaled[:, 15:]
+    X_test_experiment_4 = X_test_scaled[:, 15:]
+    print("Experiment 4 Train Set: ", X_train_experiment_4.shape)
+    print("Experiment 4 Test Set: ", X_test_experiment_4.shape)
+
+    X_train_experiment_5 = X_train_scaled
+    X_test_experiment_5 = X_test_scaled
+    print("Experiment 5 Train Set: ", X_train_experiment_5.shape)
+    print("Experiment 5 Test Set: ", X_test_experiment_5.shape)
 
     # ================================================================== #
     # Experiemnt 1 only time domain features
@@ -515,7 +529,7 @@ def SVM(experiment_number=1):
         # Feature Selection
         experiment_2 = SFS(
             base_classifier_experiment_2,
-            k_features=32,
+            k_features=33,
             forward=True,
             floating=False,
             verbose=2,
@@ -547,14 +561,26 @@ def SVM(experiment_number=1):
             folder="experiment_2",
         )
     elif experiment_number == 3:
-        # =================================================================================#
-        # experiment 3 backward selection
         base_classifier_experiment_3 = svm.SVC(kernel="linear")
         base_classifier_experiment_3.fit(X_train_experiment_3, y_train)
+        y_hat_base_classifier_experiment_3 = base_classifier_experiment_3.predict(
+            X_test_experiment_3
+        )
 
+        # compute metrics for baseline
+        compute_metrics_and_plot(
+            y_test,
+            y_hat_base_classifier_experiment_3,
+            label_decoder,
+            plot_file_name="base_experiment_3",
+            plot_title="Experiment 3 Baseline (No MFCCs)",
+            folder="experiment_3",
+        )
+
+        # Feature Selection
         experiment_3 = SFS(
             base_classifier_experiment_3,
-            k_features=32,
+            k_features=14,
             forward=True,
             floating=False,
             verbose=2,
@@ -572,27 +598,129 @@ def SVM(experiment_number=1):
         fig1 = plot_sfs(experiment_3.get_metric_dict(), kind="std_dev", figsize=(8, 6))
 
         # plt.ylim([0.8, 1])
-        plt.title(
-            "Sequential Forward Selection Reversed Experiemnt 3 (spectral features)"
-        )
+        plt.title("Sequential Forward Selection Experiemnt 3 (No MFCCs)")
         plt.grid()
-        plt.savefig("plots/metrics/experiment_3/experiment_3_SFS_reversed.png")
+        plt.savefig("plots/metrics/experiment_3/experiment_3_SFS.png")
 
-        # compute metrics for Experiment 3
+        # compute metrics for Experiment 2
         compute_metrics_and_plot(
             y_test,
             y_hat_experiment_3,
             label_decoder,
             plot_file_name="experiment_3",
-            plot_title="Experiment 3 (spectral features)",
+            plot_title="Experiment 3 (No MFCCs)",
             folder="experiment_3",
+        )
+
+    elif experiment_number == 4:
+        base_classifier_experiment_4 = svm.SVC(kernel="linear")
+        base_classifier_experiment_4.fit(X_train_experiment_4, y_train)
+        y_hat_base_classifier_experiment_4 = base_classifier_experiment_4.predict(
+            X_test_experiment_4
+        )
+
+        # compute metrics for baseline
+        compute_metrics_and_plot(
+            y_test,
+            y_hat_base_classifier_experiment_4,
+            label_decoder,
+            plot_file_name="base_experiment_4",
+            plot_title="Experiment 4 Baseline (MFCCs)",
+            folder="experiment_4",
+        )
+
+        # Feature Selection
+        experiment_4 = SFS(
+            base_classifier_experiment_4,
+            k_features=25,
+            forward=True,
+            floating=False,
+            verbose=2,
+            scoring="accuracy",
+            cv=5,
+        )
+        experiment_4.fit(X_train_experiment_4, y_train)
+        X_train_experiment_4_selected = experiment_4.transform(X_train_experiment_4)
+        X_test_experiment_4_selected = experiment_4.transform(X_test_experiment_4)
+        base_classifier_experiment_4.fit(X_train_experiment_4_selected, y_train)
+        y_hat_experiment_4 = base_classifier_experiment_4.predict(
+            X_test_experiment_4_selected
+        )
+
+        fig1 = plot_sfs(experiment_4.get_metric_dict(), kind="std_dev", figsize=(8, 6))
+
+        # plt.ylim([0.8, 1])
+        plt.title("Sequential Forward Selection Experiemnt 4 (MFCCs)")
+        plt.grid()
+        plt.savefig("plots/metrics/experiment_4/experiment_4_SFS.png")
+
+        # compute metrics for Experiment 2
+        compute_metrics_and_plot(
+            y_test,
+            y_hat_experiment_4,
+            label_decoder,
+            plot_file_name="experiment_4",
+            plot_title="Experiment 4 (MFCCs)",
+            folder="experiment_4",
+        )
+
+    elif experiment_number == 5:
+        base_classifier_experiment_5 = svm.SVC(kernel="linear")
+        base_classifier_experiment_5.fit(X_train_experiment_5, y_train)
+        y_hat_base_classifier_experiment_5 = base_classifier_experiment_5.predict(
+            X_test_experiment_5
+        )
+
+        # compute metrics for baseline
+        compute_metrics_and_plot(
+            y_test,
+            y_hat_base_classifier_experiment_5,
+            label_decoder,
+            plot_file_name="base_experiment_5",
+            plot_title="Experiment 5 Baseline (entire feature set)",
+            folder="experiment_5",
+        )
+
+        # Feature Selection
+        experiment_5 = SFS(
+            base_classifier_experiment_5,
+            k_features=40,
+            forward=True,
+            floating=False,
+            verbose=2,
+            scoring="accuracy",
+            cv=5,
+        )
+        experiment_5.fit(X_train_experiment_5, y_train)
+        X_train_experiment_5_selected = experiment_5.transform(X_train_experiment_5)
+        X_test_experiment_5_selected = experiment_5.transform(X_test_experiment_5)
+        base_classifier_experiment_5.fit(X_train_experiment_5_selected, y_train)
+        y_hat_experiment_5 = base_classifier_experiment_5.predict(
+            X_test_experiment_5_selected
+        )
+
+        fig1 = plot_sfs(experiment_5.get_metric_dict(), kind="std_dev", figsize=(10, 6))
+
+        # plt.ylim([0.8, 1])
+        plt.title("Sequential Forward Selection Experiemnt 5 (entire feature set)")
+        plt.grid()
+        plt.savefig("plots/metrics/experiment_5/experiment_5_SFS.png")
+
+        # compute metrics for Experiment 2
+        compute_metrics_and_plot(
+            y_test,
+            y_hat_experiment_5,
+            label_decoder,
+            plot_file_name="experiment_5",
+            plot_title="Experiment 5 (entire feature set)",
+            folder="experiment_5",
         )
 
 
 if __name__ == "__main__":
 
     # linear_SVM()
-    SVM(experiment_number=3)
+    SVM(experiment_number=5)
     # RBF_SVM()
 
     # random_forest_classifier()

@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch.nn as nn
 from _dataloader import clean_and_split_data
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, LabelEncoder
 from torchsummary import summary
 
 
@@ -86,13 +86,43 @@ class PatchBanksDataset(Dataset):
         return signal, label
 
 
-def make_torch_dataset():
+def make_torch_dataset(experiment_num):
     X_train, X_test, y_train, y_test, label_encoder = clean_and_split_data()
+    # plot_feature_vector_distribution(X_train_scaled, y_train)
     scaler = MinMaxScaler()
     X_train = scaler.fit_transform(X_train)
     X_test = scaler.transform(X_test)
 
     device = torch.device("cuda")
+
+    if experiment_num == 1:
+
+        X_train = X_train[:, :7]
+        X_test = X_test[:, :7]
+        print("Experiment 1 Train Set: ", X_train.shape)
+        print("Experiment 1 Test Set: ", X_test.shape)
+
+    elif experiment_num == 2:
+        X_train = X_train[:, 8:]
+        X_test = X_test[:, 8:]
+        print("Experiment 2 Train Set: ", X_train.shape)
+        print("Experiment 2 Test Set: ", X_test.shape)
+
+    elif experiment_num == 3:
+        X_train = X_train[:, :15]
+        X_test = X_test[:, :15]
+        print("Experiment 3 Train Set: ", X_train.shape)
+        print("Experiment 3 Test Set: ", X_test.shape)
+
+    elif experiment_num == 4:
+        X_train = X_train[:, 15:]
+        X_test = X_test[:, 15:]
+        print("Experiment 4 Train Set: ", X_train.shape)
+        print("Experiment 4 Test Set: ", X_test.shape)
+
+    elif experiment_num == 5:
+        print("Experiment 5 Train Set: ", X_train.shape)
+        print("Experiment 5 Test Set: ", X_test.shape)
 
     X_train = torch.tensor(X_train, dtype=torch.float32).to(device)
     X_test = torch.tensor(X_test, dtype=torch.float32).to(device)
@@ -108,13 +138,13 @@ def make_torch_dataset():
 if __name__ == "__main__":
     device = torch.device("cuda")
 
-    train_dataset, test_dataset = make_torch_dataset()
+    # train_dataset, test_dataset = make_torch_dataset()
 
-    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+    # # train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+    # # test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
-    print(train_dataset[0][0].shape)
-    
-    model = MLP(in_features=49, num_classes=4)
+    # print(train_dataset[0][0].shape)
 
-    summary(model.cuda(), (49,))
+    model = MLP(in_features=7, num_classes=4)
+
+    summary(model.cuda(), (7,))

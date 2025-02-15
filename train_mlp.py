@@ -12,6 +12,14 @@ from MLP import MLP, make_torch_dataset
 from tqdm import tqdm
 from torchmetrics import ConfusionMatrix
 from datetime import datetime
+from sklearn.metrics import accuracy_score, f1_score, recall_score, precision_score
+
+SAMPLE_RATE = 44_100
+TARGET_SAMPLE_RATE = 22_050
+BATCH_SIZE = 128
+EPOCHS = 10
+LR = 1e-3
+SEED = 42
 
 
 class_mappings = [
@@ -22,7 +30,43 @@ class_mappings = [
 ]
 
 
-def evaluate(model, test_data_loader, loss_fn, device, num_classes):
+def plot_metrics(test_metrics, metric_names, model_name, plot_name, folder):
+    x = np.arange(len(metric_names))
+    width = 0.35
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+
+    bars2 = ax.bar(x + width / 2, test_metrics, width, label="Test", color="orange")
+
+    ax.set_xlabel("Metric")
+    ax.set_ylabel("Score")
+    ax.set_title(f"{model_name} Performance Metrics")
+    ax.set_xticks(x)
+    ax.set_xticklabels(metric_names)
+    ax.legend()
+
+    for bar in bars2:
+        height = bar.get_height()
+        ax.annotate(
+            f"{height:.2f}",
+            xy=(bar.get_x() + bar.get_width() / 2, height),
+            xytext=(0, 3),
+            textcoords="offset points",
+            ha="center",
+            va="bottom",
+        )
+
+    plt.savefig(f"plots/metrics/MLP/{folder}/{plot_name}.png")
+
+
+def evaluate(
+    model,
+    test_data_loader,
+    loss_fn,
+    device,
+    num_classes,
+    experiment_num,
+):
     model.eval()
     total_loss = 0.0
     correct = 0
@@ -46,14 +90,33 @@ def evaluate(model, test_data_loader, loss_fn, device, num_classes):
             all_preds.append(predicted)
 
     avg_loss = total_loss / len(test_data_loader)
-    accuracy = 100.0 * correct / total if total > 0 else 0
-    print(f"Validation Loss: {avg_loss:.4f}, Accuracy: {accuracy:.2f}%")
+    print(f"Validation Loss: {avg_loss:.4f},")
 
     all_targets = torch.cat(all_targets).cpu()
     all_preds = torch.cat(all_preds).cpu()
 
+    accuracy = accuracy_score(all_targets, all_preds)
+    f1 = f1_score(all_targets, all_preds, average="weighted")
+    recall = recall_score(all_targets, all_preds, average="weighted")
+    precision = precision_score(all_targets, all_preds, average="weighted")
+
+    # print(f"Accuracy: {accuracy:.4f}")
+    # print(f"F1 Score: {f1:.4f}")
+    # print(f"Recall: {recall:.4f}")
+    # print(f"Precision: {precision:.4f}")
+
+    test_metrics = [accuracy, f1, recall, precision]
+    metric_names = ["Accuracy", "Precision", "Recall", "F1-score"]
+    plot_metrics(
+        test_metrics=test_metrics,
+        metric_names=metric_names,
+        model_name=f"MLP Experiment {experiment_num}",
+        plot_name=f"experiment_{experiment_num}_MLP_metrics",
+        folder=f"experiment_{experiment_num}",
+    )
+
     cm_metric = ConfusionMatrix(
-        num_classes=num_classes, normalize="none", task="multiclass"
+        num_classes=num_classes, normalize="true", task="multiclass"
     )
     cm = cm_metric(all_preds, all_targets)
 
@@ -70,11 +133,12 @@ def evaluate(model, test_data_loader, loss_fn, device, num_classes):
     )
     plt.xlabel("Predicted Label")
     plt.ylabel("True Label")
-    plt.title("Normalized Confusion Matrix")
+    plt.title(f"Experiment {experiment_num} Normalized Confusion Matrix")
     plt.tight_layout()
     current_time = datetime.now()
-    time_str = current_time.strftime("%m_%d_%H_%M")
-    plt.savefig(f"plots/metrics/confusion_matrix_{time_str}.png")
+    plt.savefig(
+        f"plots/metrics/MLP/experiment_{experiment_num}/experiment_{experiment_num}confusion_matrix.png"
+    )
 
 
 def train_one_epoch(model, data_loader, loss_fn, optimizer, device):
@@ -109,6 +173,7 @@ def train(
     scheduler,
     device,
     epochs,
+    experiment_num,
     train_labels=None,
     train_dataset=None,
     batch_size=None,
@@ -152,22 +217,56 @@ def train(
     plt.legend()
     current_time = datetime.now()
     time_str = current_time.strftime("%m_%d_%H_%M")
-    plt.savefig(f"plots/metrics/training_metrics_{time_str}.png")
+    plt.savefig(f"plots/metrics/MLP/experiment_{experiment_num}/training_metrics.png")
+
+
+def experiments(experiment_number):
+    train_dataset, test_dataset = make_torch_dataset(experiment_number)
+    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
+    num_in_features = train_dataset[0][0].shape[0]
+    mlp_network = MLP(in_features=num_in_features, num_classes=4).to(device)
+    loss_fn = nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(mlp_network.parameters(), lr=LR)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=EPOCHS, eta_min=1e-6
+    )
+    print("Training Model")
+    train(
+        mlp_network,
+        loss_fn,
+        optimizer,
+        scheduler,
+        device,
+        experiment_num=experiment_number,
+        epochs=EPOCHS,
+        # train_labels=train_labels,
+        # train_dataset=train_dataset,
+        # batch_size=BATCH_SIZE,
+        train_dataloader=train_loader,
+    )
+    print("============================")
+    print("Final Evaluation on Test Set:")
+    evaluate(
+        mlp_network,
+        test_loader,
+        loss_fn,
+        device,
+        num_classes=4,
+        experiment_num=experiment_number,
+    )
+    print("============================")
+    current_time = datetime.now()
+    time_str = current_time.strftime("%m_%d_%H_%M")
 
 
 if __name__ == "__main__":
-    device = torch.device("cpu")
+    device = torch.device("cuda")
 
     torch.cuda.empty_cache()
 
     annotations = "data/annotations.csv"
     audio_dir = "data"
-    SAMPLE_RATE = 44_100
-    TARGET_SAMPLE_RATE = 22_050
-    BATCH_SIZE = 128
-    EPOCHS = 10
-    LR = 1e-3
-    SEED = 42
 
     # mfcc_transform = MFCC(
     #     sample_rate=SAMPLE_RATE,
@@ -178,13 +277,15 @@ if __name__ == "__main__":
     #         "n_mels": 40,
     #     },
     # )
-
+    experiments(5)
     # resampler = Resample(SAMPLE_RATE, TARGET_SAMPLE_RATE)
 
-    train_dataset, test_dataset = make_torch_dataset()
+    # train_dataset, test_dataset = make_torch_dataset(1)
 
-    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
+    # train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+    # test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
+
+    # print(train_dataset[0][0].shape[0])
 
     # train_size = int(0.7 * len(dataset))
     # test_size = len(dataset) - train_size
@@ -198,37 +299,3 @@ if __name__ == "__main__":
 
     # train_dataloader = DataLoader(train_dataset, batch_sampler=train_sampler)
     # test_dataloader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
-
-    mlp_network = MLP(in_features=49, num_classes=4).to(device)
-    # mlp_network.load_state_dict(torch.load("trained_models/MLP_02_09_18_09.pth"))
-
-    loss_fn = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(mlp_network.parameters(), lr=LR)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-        optimizer, T_max=EPOCHS, eta_min=1e-6
-    )
-
-    print("Training Model")
-    train(
-        mlp_network,
-        loss_fn,
-        optimizer,
-        scheduler,
-        device,
-        epochs=EPOCHS,
-        # train_labels=train_labels,
-        # train_dataset=train_dataset,
-        # batch_size=BATCH_SIZE,
-        train_dataloader=train_loader,
-    )
-    print("============================")
-
-    print("Final Evaluation on Test Set:")
-    evaluate(mlp_network, test_loader, loss_fn, device, num_classes=4)
-    print("============================")
-
-    print("saving Model")
-    current_time = datetime.now()
-    time_str = current_time.strftime("%m_%d_%H_%M")
-    torch.save(mlp_network.state_dict(), f"trained_models/MLP_{time_str}.pth")
-    print("model saved")
