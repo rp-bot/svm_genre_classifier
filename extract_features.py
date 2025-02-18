@@ -188,6 +188,8 @@ def extract_features(file_path):
             "std_mfcc": np.std(mfcc, axis=1),
         }
     
+    pprint(aggregated_features)
+    
 
     feature_vector = np.concatenate(
         [

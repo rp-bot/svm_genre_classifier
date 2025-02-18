@@ -106,6 +106,7 @@ def evaluate(
     # print(f"Precision: {precision:.4f}")
 
     test_metrics = [accuracy, f1, recall, precision]
+    print(test_metrics)
     metric_names = ["Accuracy", "Precision", "Recall", "F1-score"]
     plot_metrics(
         test_metrics=test_metrics,

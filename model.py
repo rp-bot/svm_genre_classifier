@@ -493,9 +493,9 @@ def SVM(experiment_number=1):
         fig1 = plot_sfs(experiment_1.get_metric_dict(), kind="std_dev")
 
         # plt.ylim([0.8, 1])
-        plt.title("Sequential Forward Selection Experiemnt 1 (time domain features)")
-        plt.grid()
-        plt.savefig("plots/metrics/experiment_1/SFS_experiment_1.png")
+        # plt.title("Sequential Forward Selection Experiemnt 1 (time domain features)")
+        # plt.grid()
+        # plt.savefig("plots/metrics/experiment_1/SFS_experiment_1.png")
 
         # compute metrics for Experiment 1
         compute_metrics_and_plot(
@@ -720,7 +720,7 @@ def SVM(experiment_number=1):
 if __name__ == "__main__":
 
     # linear_SVM()
-    SVM(experiment_number=5)
+    SVM(experiment_number=4)
     # RBF_SVM()
 
     # random_forest_classifier()
