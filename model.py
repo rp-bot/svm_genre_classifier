@@ -489,7 +489,9 @@ def SVM(experiment_number=1):
         y_hat_experiment_1 = base_classifier_experiment_1.predict(
             X_test_experiment_1_selected
         )
-        print(experiment_1.get_metric_dict())
+        metric_dict = experiment_1.get_metric_dict()
+        df = pd.DataFrame.from_dict(metric_dict).T
+        df.to_csv("plots/metrics/experiment_1/experiment_1_SFS_metrics.csv")
         fig1 = plot_sfs(experiment_1.get_metric_dict(), kind="std_dev")
 
         plt.ylim([0.8, 1])
@@ -543,7 +545,11 @@ def SVM(experiment_number=1):
         y_hat_experiment_2 = base_classifier_experiment_2.predict(
             X_test_experiment_2_selected
         )
-
+        metric_dict = experiment_2.get_metric_dict()
+        df = pd.DataFrame.from_dict(metric_dict).T
+        df.to_csv(
+            f"plots/metrics/experiment_{experiment_number}/experiment_{experiment_number}_SFS_metrics.csv"
+        )
         fig1 = plot_sfs(experiment_2.get_metric_dict(), kind="std_dev", figsize=(8, 6))
 
         # plt.ylim([0.8, 1])
@@ -593,6 +599,11 @@ def SVM(experiment_number=1):
         base_classifier_experiment_3.fit(X_train_experiment_3_selected, y_train)
         y_hat_experiment_3 = base_classifier_experiment_3.predict(
             X_test_experiment_3_selected
+        )
+        metric_dict = experiment_3.get_metric_dict()
+        df = pd.DataFrame.from_dict(metric_dict).T
+        df.to_csv(
+            f"plots/metrics/experiment_{experiment_number}/experiment_{experiment_number}_SFS_metrics.csv"
         )
 
         fig1 = plot_sfs(experiment_3.get_metric_dict(), kind="std_dev", figsize=(8, 6))
@@ -646,6 +657,11 @@ def SVM(experiment_number=1):
         y_hat_experiment_4 = base_classifier_experiment_4.predict(
             X_test_experiment_4_selected
         )
+        metric_dict = experiment_4.get_metric_dict()
+        df = pd.DataFrame.from_dict(metric_dict).T
+        df.to_csv(
+            f"plots/metrics/experiment_{experiment_number}/experiment_{experiment_number}_SFS_metrics.csv"
+        )
 
         fig1 = plot_sfs(experiment_4.get_metric_dict(), kind="std_dev", figsize=(8, 6))
 
@@ -697,6 +713,11 @@ def SVM(experiment_number=1):
         base_classifier_experiment_5.fit(X_train_experiment_5_selected, y_train)
         y_hat_experiment_5 = base_classifier_experiment_5.predict(
             X_test_experiment_5_selected
+        )
+        metric_dict = experiment_5.get_metric_dict()
+        df = pd.DataFrame.from_dict(metric_dict).T
+        df.to_csv(
+            f"plots/metrics/experiment_{experiment_number}/experiment_{experiment_number}_SFS_metrics.csv"
         )
 
         fig1 = plot_sfs(experiment_5.get_metric_dict(), kind="std_dev", figsize=(10, 6))
