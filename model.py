@@ -741,7 +741,7 @@ def SVM(experiment_number=1):
 if __name__ == "__main__":
 
     # linear_SVM()
-    SVM(experiment_number=1)
+    SVM(experiment_number=2)
     # RBF_SVM()
 
     # random_forest_classifier()
