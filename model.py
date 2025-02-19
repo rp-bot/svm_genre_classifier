@@ -1,6 +1,6 @@
 from pprint import pprint
 from sklearn import svm
-from sklearn.model_selection import cross_val_score, StratifiedKFold
+from sklearn.model_selection import cross_val_score, StratifiedKFold, KFold
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import MinMaxScaler
 
@@ -449,7 +449,7 @@ def SVM(experiment_number=1):
     X_test_experiment_5 = X_test_scaled
     print("Experiment 5 Train Set: ", X_train_experiment_5.shape)
     print("Experiment 5 Test Set: ", X_test_experiment_5.shape)
-
+    kf = KFold(n_splits=5, shuffle=True, random_state=42)
     # ================================================================== #
     # Experiemnt 1 only time domain features
     # Fit the data and predict (base model)
@@ -687,6 +687,10 @@ def SVM(experiment_number=1):
             X_test_experiment_5
         )
 
+        scores = cross_val_score(
+            base_classifier_experiment_5, X_train_experiment_5, y_train, cv=kf
+        )
+        pprint(scores)
         # compute metrics for baseline
         compute_metrics_and_plot(
             y_test,
@@ -714,6 +718,12 @@ def SVM(experiment_number=1):
         y_hat_experiment_5 = base_classifier_experiment_5.predict(
             X_test_experiment_5_selected
         )
+
+        scores = cross_val_score(
+            base_classifier_experiment_5, X_train_experiment_5_selected, y_train, cv=kf
+        )
+        pprint(scores)
+
         metric_dict = experiment_5.get_metric_dict()
         df = pd.DataFrame.from_dict(metric_dict).T
         df.to_csv(
@@ -741,7 +751,7 @@ def SVM(experiment_number=1):
 if __name__ == "__main__":
 
     # linear_SVM()
-    SVM(experiment_number=2)
+    SVM(experiment_number=5)
     # RBF_SVM()
 
     # random_forest_classifier()
