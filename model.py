@@ -375,9 +375,10 @@ def random_forest_classifier():
 
 
 def compute_metrics_and_plot(
-    y_test, y_hat, label_decoder, plot_file_name, plot_title, folder
+    y_test, y_hat, label_decoder, plot_file_name, plot_title, folder, cross_val_scores
 ):
-    metric_names = ["Accuracy", "Precision", "Recall", "F1-score"]
+
+    metric_names = ["Accuracy", "Precision", "Recall", "F1-score", "Cross Validation"]
     base_classifier_accuracy = metrics.accuracy_score(y_test, y_hat)
     experiment_1__base_precision = metrics.precision_score(
         y_test, y_hat, average="macro"
@@ -395,15 +396,15 @@ def compute_metrics_and_plot(
         experiment_1__base_precision,
         experiment_1__base_recall,
         experiment_1__base_f1,
+        cross_val_scores,
     ]
-    pprint(experiment_1_test_metrics)
-    # plot_metrics(
-    #     experiment_1_test_metrics,
-    #     metric_names,
-    #     plot_name=f"{plot_file_name}_metrics",
-    #     model_name=plot_title,
-    #     folder=folder,
-    # )
+    plot_metrics(
+        experiment_1_test_metrics,
+        metric_names,
+        plot_name=f"{plot_file_name}_metrics",
+        model_name=plot_title,
+        folder=folder,
+    )
 
     # Plot Confusion Matrix for Regular Validation
     # plot_confusion_matrix(
@@ -461,6 +462,10 @@ def SVM(experiment_number=1):
             X_test_experiment_1
         )
 
+        baseline_score = cross_val_score(
+            base_classifier_experiment_1, X_train_experiment_1, y_train, cv=kf
+        ).mean()
+
         # compute metrics for baseline
         compute_metrics_and_plot(
             y_test,
@@ -469,6 +474,7 @@ def SVM(experiment_number=1):
             plot_file_name="base_experiment_1",
             plot_title="Experiment 1 Baseline (time domain)",
             folder="experiment_1",
+            cross_val_scores=baseline_score,
         )
 
         # ======================================================================#
@@ -489,6 +495,10 @@ def SVM(experiment_number=1):
         y_hat_experiment_1 = base_classifier_experiment_1.predict(
             X_test_experiment_1_selected
         )
+
+        experiment_score = cross_val_score(
+            base_classifier_experiment_1, X_train_experiment_1, y_train, cv=kf
+        ).mean()
         metric_dict = experiment_1.get_metric_dict()
         df = pd.DataFrame.from_dict(metric_dict).T
         df.to_csv("plots/metrics/experiment_1/experiment_1_SFS_metrics.csv")
@@ -507,6 +517,7 @@ def SVM(experiment_number=1):
             plot_file_name="experiment_1",
             plot_title="Experiment 1 (time domain)",
             folder="experiment_1",
+            cross_val_scores=experiment_score,
         )
 
     # ================================================================== #
@@ -518,6 +529,10 @@ def SVM(experiment_number=1):
             X_test_experiment_2
         )
 
+        baseline_score = cross_val_score(
+            base_classifier_experiment_2, X_train_experiment_2, y_train, cv=kf
+        ).mean()
+
         # compute metrics for baseline
         compute_metrics_and_plot(
             y_test,
@@ -526,6 +541,7 @@ def SVM(experiment_number=1):
             plot_file_name="base_experiment_2",
             plot_title="Experiment 2 Baseline (spectral features)",
             folder="experiment_2",
+            cross_val_scores=baseline_score,
         )
 
         # Feature Selection
@@ -545,6 +561,11 @@ def SVM(experiment_number=1):
         y_hat_experiment_2 = base_classifier_experiment_2.predict(
             X_test_experiment_2_selected
         )
+
+        experiment_score = cross_val_score(
+            base_classifier_experiment_2, X_train_experiment_2, y_train, cv=kf
+        ).mean()
+
         metric_dict = experiment_2.get_metric_dict()
         df = pd.DataFrame.from_dict(metric_dict).T
         df.to_csv(
@@ -565,6 +586,7 @@ def SVM(experiment_number=1):
             plot_file_name="experiment_2",
             plot_title="Experiment 2 (spectral features)",
             folder="experiment_2",
+            cross_val_scores=experiment_score,
         )
     elif experiment_number == 3:
         base_classifier_experiment_3 = svm.SVC(kernel="linear")
@@ -572,6 +594,10 @@ def SVM(experiment_number=1):
         y_hat_base_classifier_experiment_3 = base_classifier_experiment_3.predict(
             X_test_experiment_3
         )
+
+        baseline_score = cross_val_score(
+            base_classifier_experiment_3, X_train_experiment_3, y_train, cv=kf
+        ).mean()
 
         # compute metrics for baseline
         compute_metrics_and_plot(
@@ -581,6 +607,7 @@ def SVM(experiment_number=1):
             plot_file_name="base_experiment_3",
             plot_title="Experiment 3 Baseline (No MFCCs)",
             folder="experiment_3",
+            cross_val_scores=baseline_score,
         )
 
         # Feature Selection
@@ -600,6 +627,10 @@ def SVM(experiment_number=1):
         y_hat_experiment_3 = base_classifier_experiment_3.predict(
             X_test_experiment_3_selected
         )
+
+        experiment_score = cross_val_score(
+            base_classifier_experiment_3, X_train_experiment_3, y_train, cv=kf
+        ).mean()
         metric_dict = experiment_3.get_metric_dict()
         df = pd.DataFrame.from_dict(metric_dict).T
         df.to_csv(
@@ -621,6 +652,7 @@ def SVM(experiment_number=1):
             plot_file_name="experiment_3",
             plot_title="Experiment 3 (No MFCCs)",
             folder="experiment_3",
+            cross_val_scores=experiment_score,
         )
 
     elif experiment_number == 4:
@@ -629,7 +661,9 @@ def SVM(experiment_number=1):
         y_hat_base_classifier_experiment_4 = base_classifier_experiment_4.predict(
             X_test_experiment_4
         )
-
+        baseline_score = cross_val_score(
+            base_classifier_experiment_4, X_train_experiment_4, y_train, cv=kf
+        ).mean()
         # compute metrics for baseline
         compute_metrics_and_plot(
             y_test,
@@ -638,6 +672,7 @@ def SVM(experiment_number=1):
             plot_file_name="base_experiment_4",
             plot_title="Experiment 4 Baseline (MFCCs)",
             folder="experiment_4",
+            cross_val_scores=baseline_score,
         )
 
         # Feature Selection
@@ -657,6 +692,11 @@ def SVM(experiment_number=1):
         y_hat_experiment_4 = base_classifier_experiment_4.predict(
             X_test_experiment_4_selected
         )
+
+        experiment_score = cross_val_score(
+            base_classifier_experiment_4, X_train_experiment_4, y_train, cv=kf
+        ).mean()
+
         metric_dict = experiment_4.get_metric_dict()
         df = pd.DataFrame.from_dict(metric_dict).T
         df.to_csv(
@@ -678,6 +718,7 @@ def SVM(experiment_number=1):
             plot_file_name="experiment_4",
             plot_title="Experiment 4 (MFCCs)",
             folder="experiment_4",
+            cross_val_scores=experiment_score,
         )
 
     elif experiment_number == 5:
@@ -687,10 +728,10 @@ def SVM(experiment_number=1):
             X_test_experiment_5
         )
 
-        scores = cross_val_score(
+        baseline_score = cross_val_score(
             base_classifier_experiment_5, X_train_experiment_5, y_train, cv=kf
-        )
-        pprint(scores)
+        ).mean()
+        # pprint(scores)
         # compute metrics for baseline
         compute_metrics_and_plot(
             y_test,
@@ -699,6 +740,7 @@ def SVM(experiment_number=1):
             plot_file_name="base_experiment_5",
             plot_title="Experiment 5 Baseline (entire feature set)",
             folder="experiment_5",
+            cross_val_scores=baseline_score,
         )
 
         # Feature Selection
@@ -719,10 +761,9 @@ def SVM(experiment_number=1):
             X_test_experiment_5_selected
         )
 
-        scores = cross_val_score(
-            base_classifier_experiment_5, X_train_experiment_5_selected, y_train, cv=kf
-        )
-        pprint(scores)
+        experiment_score = cross_val_score(
+            base_classifier_experiment_5, X_train_experiment_5, y_train, cv=kf
+        ).mean()
 
         metric_dict = experiment_5.get_metric_dict()
         df = pd.DataFrame.from_dict(metric_dict).T
@@ -745,13 +786,15 @@ def SVM(experiment_number=1):
             plot_file_name="experiment_5",
             plot_title="Experiment 5 (entire feature set)",
             folder="experiment_5",
+            cross_val_scores=experiment_score,
         )
 
 
 if __name__ == "__main__":
 
     # linear_SVM()
-    SVM(experiment_number=5)
+    for i in [1, 2, 3, 4]:
+        SVM(experiment_number=i)
     # RBF_SVM()
 
     # random_forest_classifier()

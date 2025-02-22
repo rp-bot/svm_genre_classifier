@@ -166,30 +166,27 @@ def extract_features(file_path):
     )  # how uniform is the distribution? found more in percussive sounds.
     mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)
 
-    
-
     aggregated_features = {
-            "mean_onset": np.array([np.mean(onset_env)]),
-            "std_onset": np.array([np.std(onset_env)]),
-            "mean_zcr": np.array([np.mean(zcr)]),
-            "std_zcr": np.array([np.std(zcr)]),
-            "mean_ioi": np.array([np.mean(iois)]),
-            "std_ioi": np.array([np.std(iois)]),
-            "tempo": tempo,
-            "mean_centroid": np.array([np.mean(spec_centroid)]),
-            "std_centroid": np.array([np.std(spec_centroid)]),
-            "mean_bandwidth": np.array([np.mean(spec_bandwidth)]),
-            "std_bandwidth": np.array([np.std(spec_bandwidth)]),
-            "mean_rolloff": np.array([np.mean(spec_rolloff)]),
-            "std_rolloff": np.array([np.std(spec_rolloff)]),
-            "mean_flatness": np.array([np.mean(spec_flatness)]),
-            "std_flatness": np.array([np.std(spec_flatness)]),
-            "mean_mfcc": np.mean(mfcc, axis=1),
-            "std_mfcc": np.std(mfcc, axis=1),
-        }
-    
+        "mean_onset": np.array([np.mean(onset_env)]),
+        "std_onset": np.array([np.std(onset_env)]),
+        "mean_zcr": np.array([np.mean(zcr)]),
+        "std_zcr": np.array([np.std(zcr)]),
+        "mean_ioi": np.array([np.mean(iois)]),
+        "std_ioi": np.array([np.std(iois)]),
+        "tempo": tempo,
+        "mean_centroid": np.array([np.mean(spec_centroid)]),
+        "std_centroid": np.array([np.std(spec_centroid)]),
+        "mean_bandwidth": np.array([np.mean(spec_bandwidth)]),
+        "std_bandwidth": np.array([np.std(spec_bandwidth)]),
+        "mean_rolloff": np.array([np.mean(spec_rolloff)]),
+        "std_rolloff": np.array([np.std(spec_rolloff)]),
+        "mean_flatness": np.array([np.mean(spec_flatness)]),
+        "std_flatness": np.array([np.std(spec_flatness)]),
+        "mean_mfcc": np.mean(mfcc, axis=1),
+        "std_mfcc": np.std(mfcc, axis=1),
+    }
+
     pprint(aggregated_features)
-    
 
     feature_vector = np.concatenate(
         [
@@ -224,6 +221,22 @@ def extract_features(file_path):
     return feature_vector
 
 
+def get_tempo(y, sr):
+    z = np.abs(librosa.stft(y=y))
+    z = librosa.power_to_db(z)
+    onset_env = np.diff(z, axis=1)
+    onset_env = np.mean(onset_env, axis=0)
+    print(onset_env.shape)
+    plt.figure(figsize=(10, 4))
+    plt.plot(onset_env, label="Onset Strength")
+    plt.xlabel("Frames")
+    plt.ylabel("Onset Strength")
+    plt.title("Onset Strength Envelope")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig("temp.png")
+
+
 def plot_features():
     audio_path = "data/pop_rok_drm_id_001_wav/100bpm_pop_rok_drm_id_001_0001.wav"
     y, sr = librosa.load(audio_path, duration=4, dtype=np.float64)
@@ -231,6 +244,8 @@ def plot_features():
     fade_out_samples = int(0.5 * sr)  # fade out by half a second
     fade_out_envelope = np.linspace(1, 0, fade_out_samples)
     y[-fade_out_samples:] *= fade_out_envelope
+
+    get_tempo(y=y, sr=sr)
 
     tempo, beat_frames = librosa.beat.beat_track(y=y, sr=sr)
 
@@ -404,9 +419,9 @@ def plot_features():
 
 
 if __name__ == "__main__":
-    for file_path in file_paths:
-        process_file(file_path)
-
+    # for file_path in file_paths:
+    #     process_file(file_path)
+    plot_features()
     # num_workers = min(len(file_paths), cpu_count())
     # with Pool(num_workers) as pool:
     #     pool.map(process_file, file_paths)
